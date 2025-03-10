@@ -1,0 +1,516 @@
+import { useState, useEffect } from "react";
+import {
+  ChevronRight,
+  ChevronDown,
+  ChevronLeft,
+  FileText,
+  Menu,
+  Home,
+  BookOpen,
+  CheckCircle,
+  Calendar,
+  Search,
+  X,
+  Download,
+} from "lucide-react";
+import fileStructure from "../data/fileStructure.json";
+
+export default function PastPapersNavigator() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [expanded, setExpanded] = useState({});
+  const [activeTab, setActiveTab] = useState("qp");
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [breadcrumbs, setBreadcrumbs] = useState([]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Call once on mount to set initial state
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleExpand = (path) => {
+    setExpanded((prev) => ({ ...prev, [path]: !prev[path] }));
+  };
+
+  const toggleSidebar = () => {
+    setSidebarExpanded((prev) => !prev);
+  };
+
+  const toggleModal = () => {
+    setModalOpen((prev) => !prev);
+  };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    const results = [];
+
+    const searchInTree = (node, path = "", breadcrumb = []) => {
+      Object.keys(node).forEach((key) => {
+        const newPath = path ? `${path}/${key}` : key;
+        const newBreadcrumb = [...breadcrumb, key];
+
+        const isFolder =
+          typeof node[key] === "object" && !Array.isArray(node[key]);
+
+        if (isFolder) {
+          searchInTree(node[key], newPath, newBreadcrumb);
+        } else {
+          node[key].forEach((paper) => {
+            if (
+              paper.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              newBreadcrumb
+                .join(" > ")
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase())
+            ) {
+              results.push({
+                path: newPath,
+                breadcrumb: newBreadcrumb,
+                paper,
+              });
+            }
+          });
+        }
+      });
+    };
+
+    searchInTree(fileStructure);
+    setSearchResults(results);
+    setIsSearching(false);
+  };
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      handleSearch();
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  const updateBreadcrumbs = (paper, path) => {
+    if (path) {
+      const parts = path.split("/");
+      setBreadcrumbs(parts);
+    } else {
+      setBreadcrumbs([]);
+    }
+  };
+
+  const renderTree = (node, path = "") => {
+    return Object.keys(node).map((key) => {
+      const newPath = path ? `${path}/${key}` : key;
+      const isFolder =
+        typeof node[key] === "object" && !Array.isArray(node[key]);
+
+      return (
+        <div key={newPath} className="ml-2">
+          {isFolder ? (
+            <>
+              <div
+                className="flex items-center cursor-pointer hover:bg-gray-700/50 px-2 py-1.5 rounded-md transition-colors group"
+                onClick={() => toggleExpand(newPath)}
+              >
+                <div className="w-5 h-5 flex items-center justify-center text-gray-400 group-hover:text-white transition-colors">
+                  {expanded[newPath] ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
+                </div>
+                <span className="ml-1.5 text-gray-300 group-hover:text-white transition-colors">
+                  {key}
+                </span>
+              </div>
+              {expanded[newPath] && (
+                <div className="ml-3 pl-2 border-l border-gray-700">
+                  {renderTree(node[key], newPath)}
+                </div>
+              )}
+            </>
+          ) : (
+            node[key].map((paper) => (
+              <div
+                key={paper.name}
+                className={`ml-6 flex items-center cursor-pointer px-2 py-1.5 rounded-md transition-colors ${
+                  selectedFile === paper
+                    ? "bg-blue-600/20 text-blue-400"
+                    : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                }`}
+                onClick={() => {
+                  setSelectedFile(paper);
+                  updateBreadcrumbs(paper, newPath);
+                  setModalOpen(false);
+                }}
+              >
+                <FileText size={14} className="flex-shrink-0" />
+                <span className="ml-1.5 text-sm truncate">{paper.name}</span>
+              </div>
+            ))
+          )}
+        </div>
+      );
+    });
+  };
+
+  const renderSearchResults = () => {
+    if (searchResults.length === 0) {
+      return (
+        <div className="text-center py-4 text-gray-400">
+          {searchQuery.trim() ? "No results found" : "Type to search"}
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-2 space-y-2">
+        {searchResults.map((result, index) => (
+          <div
+            key={index}
+            className={`p-2 rounded-md cursor-pointer transition-colors ${
+              selectedFile === result.paper
+                ? "bg-blue-600/20 text-blue-400"
+                : "hover:bg-gray-700/50 text-gray-300 hover:text-white"
+            }`}
+            onClick={() => {
+              setSelectedFile(result.paper);
+              updateBreadcrumbs(result.paper, result.path);
+              setModalOpen(false);
+              setSearchQuery("");
+            }}
+          >
+            <div className="flex items-center">
+              <FileText size={14} className="flex-shrink-0" />
+              <span className="ml-1.5 font-medium">{result.paper.name}</span>
+            </div>
+            <div className="mt-1 text-xs text-gray-400 truncate">
+              {result.breadcrumb.join(" > ")}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-900 text-white relative overflow-hidden">
+      {/* Floating Action Button for Mobile */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            className="bg-blue-600 p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+            onClick={toggleModal}
+            aria-label="Open navigator"
+          >
+            <Menu size={24} className="text-white" />
+          </button>
+        </div>
+      )}
+
+      {/* Sidebar Navigator for PC */}
+      {!isMobile && (
+        <div
+          className={`bg-gray-800 overflow-hidden transition-all duration-300 border-r border-gray-700 flex flex-col ${
+            sidebarExpanded ? "w-72" : "w-16"
+          }`}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            {sidebarExpanded ? (
+              <>
+                <h1 className="font-bold text-xl text-white">Past Papers</h1>
+                <button
+                  onClick={toggleSidebar}
+                  className="p-1 rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={toggleSidebar}
+                className="p-1 rounded-md hover:bg-gray-700 transition-colors mx-auto"
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
+
+          {sidebarExpanded && (
+            <>
+              <div className="p-3">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search papers..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-2.5 text-gray-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {searchQuery ? (
+                  <div className="p-3">
+                    <h3 className="text-xs uppercase text-gray-500 font-semibold mb-2">
+                      Search Results
+                    </h3>
+                    {isSearching ? (
+                      <div className="text-center py-4 text-gray-400">
+                        Searching...
+                      </div>
+                    ) : (
+                      renderSearchResults()
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-1">{renderTree(fileStructure)}</div>
+                )}
+              </div>
+            </>
+          )}
+
+          {!sidebarExpanded && (
+            <div className="flex flex-col items-center mt-6 space-y-6 text-gray-400">
+              <Home size={20} className="hover:text-white cursor-pointer" />
+              <BookOpen size={20} className="hover:text-white cursor-pointer" />
+              <Calendar size={20} className="hover:text-white cursor-pointer" />
+              <Search
+                size={20}
+                className="hover:text-white cursor-pointer"
+                onClick={toggleSidebar}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal Navigator for Mobile */}
+      {modalOpen && isMobile && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center z-50 p-4 pt-16 overflow-y-auto">
+          <div className="bg-gray-800 w-full max-w-md rounded-xl shadow-2xl overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h2 className="text-lg font-bold text-white">
+                Past Papers Navigator
+              </h2>
+              <button
+                onClick={toggleModal}
+                className="p-1.5 rounded-md hover:bg-gray-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-3 border-b border-gray-700">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search papers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-2.5 text-gray-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[60vh] p-2">
+              {searchQuery ? (
+                <div className="p-2">
+                  <h3 className="text-xs uppercase text-gray-500 font-semibold mb-2">
+                    Search Results
+                  </h3>
+                  {isSearching ? (
+                    <div className="text-center py-4 text-gray-400">
+                      Searching...
+                    </div>
+                  ) : (
+                    renderSearchResults()
+                  )}
+                </div>
+              ) : (
+                renderTree(fileStructure)
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+        {selectedFile ? (
+          <>
+            {/* Tab Navigation with Download Buttons */}
+            <div className="flex flex-wrap items-center justify-between p-2 bg-gray-800 border-b border-gray-700">
+              <div
+                className={`flex ${isMobile ? "flex-wrap gap-1" : "space-x-2"}`}
+              >
+                <button
+                  onClick={() => setActiveTab("qp")}
+                  className={`${
+                    isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
+                  } rounded-md transition-colors ${
+                    activeTab === "qp"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  <div className="flex items-center space-x-1">
+                    <FileText size={isMobile ? 14 : 16} />
+                    <span>{isMobile ? "QP" : "Question Paper"}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab("ms")}
+                  className={`${
+                    isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
+                  } rounded-md transition-colors ${
+                    activeTab === "ms"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                  disabled={!selectedFile.ms}
+                >
+                  <div className="flex items-center space-x-1">
+                    <BookOpen size={isMobile ? 14 : 16} />
+                    <span>{isMobile ? "MS" : "Mark Scheme"}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab("sp")}
+                  className={`${
+                    isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
+                  } rounded-md transition-colors ${
+                    activeTab === "sp"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                  disabled={!selectedFile.sp}
+                >
+                  <div className="flex items-center space-x-1">
+                    <CheckCircle size={isMobile ? 14 : 16} />
+                    <span>{isMobile ? "SP" : "Solved Paper"}</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex space-x-1 mt-1 md:mt-0">
+                <a
+                  href={selectedFile.qp.replace("/preview", "/view")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
+                >
+                  <Download size={14} />
+                  <span>QP</span>
+                </a>
+                {selectedFile.ms && (
+                  <a
+                    href={selectedFile.ms.replace("/preview", "/view")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
+                  >
+                    <Download size={14} />
+                    <span>MS</span>
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* PDF Viewer */}
+            <div className="flex flex-col md:flex-row flex-1 gap-2 p-4 overflow-hidden">
+              <div
+                className={`bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl flex-1 ${
+                  activeTab === "qp" || !selectedFile[activeTab]
+                    ? "w-full"
+                    : "md:w-1/2"
+                }`}
+              >
+                <iframe
+                  src={selectedFile.qp}
+                  className="w-full h-full rounded-lg"
+                  allow="autoplay"
+                  allowFullScreen
+                />
+              </div>
+
+              {activeTab !== "qp" && selectedFile[activeTab] && (
+                <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl flex-1 md:w-1/2">
+                  <iframe
+                    src={selectedFile[activeTab]}
+                    className="w-full h-full rounded-lg"
+                    allow="autoplay"
+                    allowFullScreen
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+              <FileText size={40} className="text-blue-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">
+              Past Papers Navigator
+            </h2>
+            <p className="text-gray-400 max-w-md mb-6">
+              Select a paper from the sidebar to view question papers, mark
+              schemes, and solved papers.
+            </p>
+            {isMobile && (
+              <button
+                onClick={toggleModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <div className="flex items-center space-x-2">
+                  <Menu size={16} />
+                  <span>Open Navigator</span>
+                </div>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
