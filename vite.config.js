@@ -7,6 +7,11 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
-    allowedHosts: ["worry-darwin-k-luxury.trycloudflare.com"],
+    allowedHosts: ["opposed-tapes-after-stronger.trycloudflare.com"],
+  },
+  build: {
+    rollupOptions: {
+      external: ["@vercel/speed-insights/react"],
+    },
   },
 });
