@@ -738,6 +738,8 @@ export default function PastPapersNavigator() {
                   className="w-full h-full rounded-lg"
                   allow="autoplay"
                   allowFullScreen
+                  scrolling="yes"
+                  style={{ minHeight: "100%", minWidth: "100%" }}
                 />
               </div>
 
@@ -748,6 +750,8 @@ export default function PastPapersNavigator() {
                     className="w-full h-full rounded-lg"
                     allow="autoplay"
                     allowFullScreen
+                    scrolling="yes"
+                    style={{ minHeight: "100%", minWidth: "100%" }}
                   />
                 </div>
               )}
