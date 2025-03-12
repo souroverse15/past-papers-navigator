@@ -20,6 +20,7 @@ import {
   Cone,
   SquareSigma,
   ChartSpline,
+  Star,
 } from "lucide-react";
 import fileStructure from "../data/fileStructure.json";
 
@@ -38,6 +39,27 @@ export default function PastPapersNavigator() {
   const [isSearching, setIsSearching] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [activePath, setActivePath] = useState("");
+
+  // Paper type priority order for sorting
+  const paperOrder = {
+    P1: 1,
+    P2: 2,
+    P3: 3,
+    P4: 4,
+    M1: 5,
+    S1: 6,
+    C12: 7,
+    C34: 8,
+  };
+
+  // Custom sorting function for mathematics papers
+  const sortMathematicsPapers = (papers) => {
+    return [...papers].sort((a, b) => {
+      const aOrder = paperOrder[a.name] || 999;
+      const bOrder = paperOrder[b.name] || 999;
+      return aOrder - bOrder;
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -380,9 +402,15 @@ export default function PastPapersNavigator() {
       }
 
       if (isPapersArray) {
+        // Sort papers if this is the IAL Mathematics section
+        const isMathematicsPath = currentPath.includes("IAL/Mathematics");
+        const papersToRender = isMathematicsPath
+          ? sortMathematicsPapers(node[key])
+          : node[key];
+
         return (
           <div key={currentPath} className="ml-4 border-l border-gray-700">
-            {node[key].map((paper, index) => (
+            {papersToRender.map((paper, index) => (
               <div
                 key={`${currentPath}-${index}`}
                 className={`pl-8 py-1.5 text-sm cursor-pointer hover:bg-gray-700 transition-colors select-none ${
@@ -399,6 +427,13 @@ export default function PastPapersNavigator() {
                 <div className="flex items-center">
                   <FileText size={16} className="mr-2 flex-shrink-0" />
                   <span className="truncate">{paper.name}</span>
+                  {paper.sp && (
+                    <Star
+                      size={14}
+                      className="ml-1.5 text-yellow-400"
+                      fill="currentColor"
+                    />
+                  )}
                 </div>
               </div>
             ))}
