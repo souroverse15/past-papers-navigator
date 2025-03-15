@@ -6,6 +6,9 @@ import {
   RotateCcw,
   AlertTriangle,
   Info,
+  Lock,
+  FileText,
+  Maximize,
 } from "lucide-react";
 
 export default function Timer({
@@ -208,16 +211,13 @@ export default function Timer({
   return (
     <>
       {examMode ? (
-        // Exam Mode Timer - Keep the original design
+        // Exam Mode Timer - Only with reset button, no pause button
         <div
           className={`flex items-center space-x-2 bg-red-900/50 border border-red-700 rounded-md px-3 py-1.5 transition-colors shadow-lg shadow-red-900/30 ${
             timeLeft < 300 ? "animate-pulse" : ""
           }`}
         >
-          <Clock
-            size={18}
-            className={`text-red-300 ${timerRunning ? "animate-pulse" : ""}`}
-          />
+          <Clock size={18} className="text-red-300 animate-pulse" />
           <span
             className={`font-mono font-medium text-lg ${
               timeLeft < 300 ? "text-red-400" : "text-red-200"
@@ -225,17 +225,6 @@ export default function Timer({
           >
             {formatTime(timeLeft)}
           </span>
-          <button
-            onClick={toggleTimer}
-            className={`p-1 rounded-md ${
-              timerRunning
-                ? "bg-red-700 hover:bg-red-800"
-                : "bg-green-700 hover:bg-green-800"
-            } transition-colors`}
-            aria-label={timerRunning ? "Pause timer" : "Start timer"}
-          >
-            {timerRunning ? <Pause size={16} /> : <Play size={16} />}
-          </button>
           <button
             onClick={resetTimer}
             className="p-1 rounded-md bg-red-800 hover:bg-red-900 transition-colors"
@@ -245,7 +234,7 @@ export default function Timer({
           </button>
         </div>
       ) : (
-        // Non-Exam Mode Timer - Compact design for navbar
+        // Non-Exam Mode Timer - Compact design for navbar with play/pause button
         <div
           className="flex items-center bg-gradient-to-r from-blue-600 to-blue-800 rounded-md px-2 py-1.5 shadow-md border border-blue-500 hover:from-blue-700 hover:to-blue-900 transition-all duration-300 cursor-pointer relative overflow-hidden"
           onClick={toggleTimer}
@@ -265,7 +254,7 @@ export default function Timer({
               </div>
             </div>
 
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -276,16 +265,6 @@ export default function Timer({
               >
                 {timerRunning ? <Pause size={14} /> : <Play size={14} />}
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetTimer();
-                }}
-                className="p-1 rounded-md bg-blue-700 hover:bg-blue-600 transition-colors"
-                aria-label="Reset timer"
-              >
-                <RotateCcw size={14} />
-              </button>
             </div>
           </div>
         </div>
@@ -293,29 +272,83 @@ export default function Timer({
 
       {/* Exam Mode Disclaimer Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-700">
-            <div className="flex items-center space-x-3 text-yellow-400 mb-4">
-              <AlertTriangle size={24} />
-              <h3 className="text-xl font-bold">Exam Mode</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-red-600 animate-scaleIn">
+            <div className="flex items-center space-x-3 text-red-500 mb-4">
+              <AlertTriangle size={28} className="text-red-500 animate-pulse" />
+              <h3 className="text-2xl font-bold">Start Mock Exam Mode</h3>
             </div>
 
-            <p className="text-gray-300 mb-4">
-              You are about to enter{" "}
-              <span className="font-semibold text-white">Exam Mode</span>. Once
-              started:
-            </p>
+            <div className="bg-red-900/30 p-4 rounded-lg border border-red-700 mb-5">
+              <p className="text-red-200 font-medium text-center">
+                You are about to enter a simulated exam environment
+              </p>
+            </div>
 
-            <ul className="list-disc list-inside text-gray-300 mb-6 space-y-2">
-              <li>You cannot access mark schemes or solved papers</li>
-              <li>You cannot switch to different papers</li>
-              <li>The sidebar will be locked completely</li>
-              <li>The timer will run until completion or manual reset</li>
-            </ul>
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-600 p-1.5 rounded-full mt-0.5">
+                  <Clock size={16} className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">
+                    Timed Environment
+                  </h4>
+                  <p className="text-gray-300 text-sm">
+                    The timer will run continuously until completion{" "}
+                    <span className="text-red-400 font-medium">
+                      and cannot be paused
+                    </span>
+                  </p>
+                </div>
+              </div>
 
-            <p className="text-gray-300 mb-6">
-              This creates a realistic exam environment for better practice.
-            </p>
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-600 p-1.5 rounded-full mt-0.5">
+                  <Lock size={16} className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">
+                    Restricted Access
+                  </h4>
+                  <p className="text-gray-300 text-sm">
+                    Mark schemes and solved papers will be hidden
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-600 p-1.5 rounded-full mt-0.5">
+                  <FileText size={16} className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">Fixed Paper</h4>
+                  <p className="text-gray-300 text-sm">
+                    You cannot switch to different papers during the exam
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-600 p-1.5 rounded-full mt-0.5">
+                  <Maximize size={16} className="text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white">Fullscreen Mode</h4>
+                  <p className="text-gray-300 text-sm">
+                    The app will enter fullscreen for a distraction-free
+                    experience
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-red-950/50 p-3 rounded-lg border border-red-800 mb-6">
+              <p className="text-red-300 text-sm text-center font-medium">
+                Once started, the exam can only be ended by completing it or
+                manually resetting the timer.
+              </p>
+            </div>
 
             <div className="flex space-x-3 justify-end">
               <button
@@ -326,8 +359,9 @@ export default function Timer({
               </button>
               <button
                 onClick={startExamMode}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white transition-colors"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white transition-colors font-medium flex items-center"
               >
+                <Play size={16} className="mr-2" />
                 Start Exam Mode
               </button>
             </div>
