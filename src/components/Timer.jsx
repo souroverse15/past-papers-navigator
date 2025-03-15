@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Clock, Play, Pause, RotateCcw, AlertTriangle } from "lucide-react";
+import {
+  Clock,
+  Play,
+  Pause,
+  RotateCcw,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 
 export default function Timer({
   duration = 90,
@@ -15,6 +22,7 @@ export default function Timer({
   );
   const [showModal, setShowModal] = useState(false);
   const [examMode, setExamMode] = useState(initialExamMode);
+  const [showTooltip, setShowTooltip] = useState(false);
   const timerRef = useRef(null);
   const initialized = useRef(false);
   const examModeChangeRef = useRef(onExamModeChange);
@@ -199,57 +207,89 @@ export default function Timer({
 
   return (
     <>
-      <div
-        className={`flex items-center space-x-2 ${
-          examMode ? "bg-red-900/50 border border-red-700" : "bg-gray-700"
-        } rounded-md px-3 py-1.5 transition-colors ${
-          examMode ? "shadow-lg shadow-red-900/30" : ""
-        } ${examMode && timeLeft < 300 ? "animate-pulse" : ""}`}
-      >
-        <Clock
-          size={examMode ? 18 : 16}
-          className={`${examMode ? "text-red-300" : "text-gray-300"} ${
-            timerRunning ? "animate-pulse" : ""
+      {examMode ? (
+        // Exam Mode Timer - Keep the original design
+        <div
+          className={`flex items-center space-x-2 bg-red-900/50 border border-red-700 rounded-md px-3 py-1.5 transition-colors shadow-lg shadow-red-900/30 ${
+            timeLeft < 300 ? "animate-pulse" : ""
           }`}
-        />
-        <span
-          className={`font-mono font-medium ${
-            timeLeft < 300
-              ? "text-red-400"
-              : examMode
-              ? "text-red-200"
-              : "text-gray-200"
-          } ${examMode ? "text-lg" : ""}`}
         >
-          {formatTime(timeLeft)}
-        </span>
-        <button
-          onClick={toggleTimer}
-          className={`p-1 rounded-md ${
-            examMode
-              ? timerRunning
+          <Clock
+            size={18}
+            className={`text-red-300 ${timerRunning ? "animate-pulse" : ""}`}
+          />
+          <span
+            className={`font-mono font-medium text-lg ${
+              timeLeft < 300 ? "text-red-400" : "text-red-200"
+            }`}
+          >
+            {formatTime(timeLeft)}
+          </span>
+          <button
+            onClick={toggleTimer}
+            className={`p-1 rounded-md ${
+              timerRunning
                 ? "bg-red-700 hover:bg-red-800"
                 : "bg-green-700 hover:bg-green-800"
-              : "hover:bg-gray-600"
-          } transition-colors`}
-          aria-label={timerRunning ? "Pause timer" : "Start timer"}
+            } transition-colors`}
+            aria-label={timerRunning ? "Pause timer" : "Start timer"}
+          >
+            {timerRunning ? <Pause size={16} /> : <Play size={16} />}
+          </button>
+          <button
+            onClick={resetTimer}
+            className="p-1 rounded-md bg-red-800 hover:bg-red-900 transition-colors"
+            aria-label="Reset timer"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+      ) : (
+        // Non-Exam Mode Timer - Compact design for navbar
+        <div
+          className="flex items-center bg-gradient-to-r from-blue-600 to-blue-800 rounded-md px-2 py-1.5 shadow-md border border-blue-500 hover:from-blue-700 hover:to-blue-900 transition-all duration-300 cursor-pointer relative overflow-hidden"
+          onClick={toggleTimer}
         >
-          {timerRunning ? (
-            <Pause size={examMode ? 16 : 14} />
-          ) : (
-            <Play size={examMode ? 16 : 14} />
-          )}
-        </button>
-        <button
-          onClick={resetTimer}
-          className={`p-1 rounded-md ${
-            examMode ? "bg-red-800 hover:bg-red-900" : "hover:bg-gray-600"
-          } transition-colors`}
-          aria-label="Reset timer"
-        >
-          <RotateCcw size={examMode ? 16 : 14} />
-        </button>
-      </div>
+          <div className="absolute inset-0 bg-blue-500 opacity-10 animate-pulse"></div>
+
+          <div className="flex items-center space-x-2 relative z-10">
+            <div className="flex items-center">
+              <Clock size={16} className="text-blue-200 mr-1.5" />
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-blue-200 font-semibold leading-none">
+                  Mock Exam
+                </div>
+                <span className="font-mono font-bold text-sm text-white">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTimer();
+                }}
+                className="p-1 rounded-md bg-blue-700 hover:bg-blue-600 transition-colors"
+                aria-label={timerRunning ? "Pause timer" : "Start timer"}
+              >
+                {timerRunning ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetTimer();
+                }}
+                className="p-1 rounded-md bg-blue-700 hover:bg-blue-600 transition-colors"
+                aria-label="Reset timer"
+              >
+                <RotateCcw size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Exam Mode Disclaimer Modal */}
       {showModal && (

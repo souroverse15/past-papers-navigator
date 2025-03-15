@@ -969,27 +969,97 @@ export default function PastPapersNavigator() {
           className="flex flex-col h-screen bg-gray-900 text-white"
         >
           {/* Exam Mode Header */}
-          <div className="bg-red-700 text-white py-2 px-4 flex items-center justify-between shadow-lg">
-            <div></div> {/* Empty div for spacing */}
-            <div className="flex items-center space-x-3">
-              <Clock size={20} className="animate-pulse" />
-              <span className="font-bold text-lg">EXAM MODE ACTIVE</span>
-              <Lock size={20} />
-            </div>
-            {!isFullscreen && (
-              <button
-                onClick={handleFullscreenButtonClick}
-                className="p-1.5 rounded-md hover:bg-red-800 transition-colors"
-                aria-label="Enter fullscreen"
-              >
-                <Maximize size={18} />
-              </button>
-            )}
-            {isFullscreen && (
-              <div className="text-xs text-white/70 italic">
-                Press ESC to exit
+          <div className="bg-red-700 text-white py-1 overflow-hidden shadow-lg">
+            {/* Scrolling text container that spans the full width */}
+            <div className="relative flex overflow-x-hidden">
+              <div className="animate-marquee whitespace-nowrap py-0.5">
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
               </div>
-            )}
+
+              <div className="absolute top-0 animate-marquee2 whitespace-nowrap py-0.5">
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Clock size={20} className="animate-pulse mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+                <span className="font-bold text-lg mx-4 inline-flex items-center">
+                  <Lock size={20} className="mr-2" />
+                  MOCK MODE ACTIVE
+                </span>
+              </div>
+            </div>
+
+            {/* Fullscreen button positioned absolutely */}
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              {!isFullscreen && (
+                <button
+                  onClick={handleFullscreenButtonClick}
+                  className="p-1.5 rounded-md hover:bg-red-800 transition-colors"
+                  aria-label="Enter fullscreen"
+                >
+                  <Maximize size={18} />
+                </button>
+              )}
+              {isFullscreen && (
+                <div className="text-xs text-white/70 italic">
+                  Press ESC to exit
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Timer Bar - Centered */}
@@ -1312,39 +1382,39 @@ export default function PastPapersNavigator() {
                         <span>{isMobile ? "SP" : "Solved Paper"}</span>
                       </div>
                     </button>
-
-                    {/* Timer Component */}
-                    {showTimer && (
-                      <div className={`${isMobile ? "mt-2 w-full" : "ml-4"}`}>
-                        <Timer
-                          duration={timerDuration}
-                          onExamModeChange={handleExamModeChange}
-                        />
-                      </div>
-                    )}
                   </div>
 
-                  <div className="hidden md:flex space-x-1 mt-1 md:mt-0">
-                    <a
-                      href={selectedFile.qp.replace("/preview", "/view")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
-                    >
-                      <Download size={14} />
-                      <span>QP</span>
-                    </a>
-                    {selectedFile.ms && (
+                  <div className="flex items-center space-x-2">
+                    {/* Timer Component */}
+                    {showTimer && !examMode && (
+                      <Timer
+                        duration={timerDuration}
+                        onExamModeChange={handleExamModeChange}
+                      />
+                    )}
+
+                    <div className="hidden md:flex space-x-1">
                       <a
-                        href={selectedFile.ms.replace("/preview", "/view")}
+                        href={selectedFile.qp.replace("/preview", "/view")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
                       >
                         <Download size={14} />
-                        <span>MS</span>
+                        <span>QP</span>
                       </a>
-                    )}
+                      {selectedFile.ms && (
+                        <a
+                          href={selectedFile.ms.replace("/preview", "/view")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
+                        >
+                          <Download size={14} />
+                          <span>MS</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
