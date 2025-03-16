@@ -18,7 +18,13 @@ import {
 // Define sidebar sections for easy addition of new items
 const SIDEBAR_SECTIONS = {
   MAIN: [
-    { id: "home", icon: <Home size={20} />, text: "Home", path: "/" },
+    {
+      id: "home",
+      icon: <Home size={20} />,
+      text: "Home",
+      path: "/",
+      comingSoon: true,
+    },
     {
       id: "papers",
       icon: <FileText size={20} />,
@@ -106,8 +112,8 @@ const Sidebar = ({
 
     if (item.isFileNavigator && onToggleFileNavigator) {
       // If this is the file navigator item and we have a toggle handler, call it
-      // Always expand the file navigator panel when "Past Papers" is selected
-      onToggleFileNavigator(true); // Pass true to explicitly expand
+      // Toggle the file navigator panel when "Past Papers" is selected
+      onToggleFileNavigator(); // No parameter means toggle
     } else if (onSelect) {
       // Otherwise, just call the regular onSelect handler
       onSelect(item.path);
@@ -123,7 +129,7 @@ const Sidebar = ({
 
   return (
     <div
-      className={`h-screen bg-gray-900 text-white shadow-lg flex flex-col justify-between ${
+      className={`h-screen bg-[#0D1321] text-white shadow-lg flex flex-col justify-between ${
         collapsed ? "w-14" : "w-64"
       } transition-all duration-300 relative`}
     >
@@ -148,7 +154,7 @@ const Sidebar = ({
         ) : (
           <div className="flex items-center gap-3">
             <FileText size={22} className="text-blue-500" />
-            <h1 className="text-xl font-bold">Past Papers</h1>
+            <h1 className="text-xl font-bold">SouroVerse</h1>
           </div>
         )}
       </div>
@@ -252,6 +258,9 @@ const SidebarItem = ({
 }) => {
   const { id, icon, text, comingSoon } = item;
 
+  // Check if this is the Past Papers item
+  const isPastPapersItem = id === "papers";
+
   return (
     <div
       className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer relative
@@ -267,7 +276,13 @@ const SidebarItem = ({
       onMouseLeave={() => onHover(null)}
       title={comingSoon ? `${text} - Coming Soon` : text}
     >
-      <div className="flex-shrink-0">{icon}</div>
+      <div
+        className={`flex-shrink-0 ${
+          collapsed && isPastPapersItem ? "animate-breathing" : ""
+        }`}
+      >
+        {icon}
+      </div>
 
       {!collapsed && (
         <>

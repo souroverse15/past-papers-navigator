@@ -942,7 +942,7 @@ export default function PastPapersNavigator() {
       {examMode && selectedFile ? (
         <div
           ref={examContainerRef}
-          className="flex flex-col h-screen bg-gray-900 text-white"
+          className="flex flex-col h-screen bg-[#0D1321] text-white"
         >
           {/* Exam Mode Header */}
           <div className="bg-red-700 text-white py-1 overflow-hidden shadow-lg">
@@ -1021,7 +1021,7 @@ export default function PastPapersNavigator() {
           </div>
 
           {/* Single Navbar with Tabs and Timer for Exam Mode */}
-          <div className="flex items-center justify-center p-2 bg-gray-800 border-b border-gray-700">
+          <div className="flex items-center justify-center p-2 bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
             {/* Timer Component - Centered */}
             <Timer
               duration={timerDuration}
@@ -1072,7 +1072,7 @@ export default function PastPapersNavigator() {
           </div>
         </div>
       ) : (
-        <div className="flex h-screen bg-gray-900 text-white relative overflow-hidden">
+        <div className="flex h-screen bg-[#0D1321] text-white relative overflow-hidden">
           {/* Sidebar Navigator for PC */}
           {!isMobile && (
             <Sidebar
@@ -1086,14 +1086,9 @@ export default function PastPapersNavigator() {
                 }
                 // Other paths can be handled as they are implemented
               }}
-              onToggleFileNavigator={(shouldExpand) => {
-                // If shouldExpand is provided and true, always expand
-                // Otherwise toggle the state
-                if (shouldExpand === true) {
-                  setSidebarExpanded(true);
-                } else {
-                  setSidebarExpanded(!sidebarExpanded);
-                }
+              onToggleFileNavigator={() => {
+                // Toggle the file navigator panel
+                setSidebarExpanded(!sidebarExpanded);
               }}
               onCollapse={(isCollapsed) => {
                 // This is a new prop to handle the sidebar's internal collapsed state
@@ -1186,7 +1181,7 @@ export default function PastPapersNavigator() {
               onClick={() => setShowMobileSidebar(false)}
             >
               <div
-                className={`bg-gray-900 w-3/4 max-w-xs h-full transition-transform duration-300 ${
+                className={`bg-[#0D1321] w-3/4 max-w-xs h-full transition-transform duration-300 ${
                   showMobileSidebar ? "translate-x-0" : "-translate-x-full"
                 }`}
                 onClick={(e) => e.stopPropagation()}
@@ -1211,12 +1206,15 @@ export default function PastPapersNavigator() {
                     Main
                   </h3>
                   <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-blue-600">
+                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
                       <Home size={20} />
                       <span>Home</span>
+                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
+                        Soon
+                      </span>
                     </button>
                     <button
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-blue-600"
                       onClick={() => {
                         setShowMobileSidebar(false);
                         openModal();
@@ -1364,27 +1362,12 @@ export default function PastPapersNavigator() {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Top Navigation Bar */}
-            <div className="bg-gray-800 border-b border-gray-700 p-1 flex items-center justify-between">
-              {/* Left side - Tab Navigation only (no hamburger menu) */}
-              <div className="flex items-center">
-                {/* File Navigator Toggle Button - Only visible when sidebar is collapsed */}
-                {!sidebarExpanded && !isMobile && (
-                  <button
-                    onClick={() => setSidebarExpanded(true)}
-                    className="mr-2 bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow-md flex items-center group relative"
-                    title="Show File Navigator"
-                  >
-                    <FileText size={14} className="mr-1" />
-                    <ChevronRight size={14} />
-                    <span className="absolute left-full ml-2 whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      Show File Navigator
-                    </span>
-                  </button>
-                )}
-
-                {/* Tab Navigation */}
-                {selectedFile && (
+            {/* Top Navigation Bar - Only show when a paper is selected */}
+            {selectedFile && (
+              <div className="bg-gray-800 border-b border-gray-700 p-1 flex items-center justify-between sticky top-0 z-10">
+                {/* Left side - Tab Navigation only (no hamburger menu) */}
+                <div className="flex items-center">
+                  {/* Tab Navigation */}
                   <div
                     className={`flex ${
                       isMobile ? "flex-wrap gap-1" : "space-x-1"
@@ -1478,55 +1461,55 @@ export default function PastPapersNavigator() {
                       </div>
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Right side - Timer, Fullscreen, and Download buttons */}
-              {selectedFile && (
-                <div className="flex items-center space-x-2">
-                  {/* Timer Component */}
-                  {showTimer && (
-                    <Timer
-                      duration={timerDuration}
-                      isRunning={timerRunning}
-                      onToggle={handleTimerToggle}
-                      onExamModeChange={handleExamModeChange}
-                      initialExamMode={initialExamMode}
-                      onMount={handleTimerMount}
-                    />
-                  )}
+                {/* Right side - Timer, Fullscreen, and Download buttons */}
+                {selectedFile && (
+                  <div className="flex items-center space-x-2">
+                    {/* Timer Component */}
+                    {showTimer && (
+                      <Timer
+                        duration={timerDuration}
+                        isRunning={timerRunning}
+                        onToggle={handleTimerToggle}
+                        onExamModeChange={handleExamModeChange}
+                        initialExamMode={initialExamMode}
+                        onMount={handleTimerMount}
+                      />
+                    )}
 
-                  {/* Download buttons */}
-                  <div className="hidden md:flex space-x-1">
-                    <a
-                      href={selectedFile.qp.replace("/preview", "/view")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
-                    >
-                      <Download size={14} />
-                      <span>QP</span>
-                    </a>
-                    {selectedFile.ms && (
+                    {/* Download buttons */}
+                    <div className="hidden md:flex space-x-1">
                       <a
-                        href={selectedFile.ms.replace("/preview", "/view")}
+                        href={selectedFile.qp.replace("/preview", "/view")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
                       >
                         <Download size={14} />
-                        <span>MS</span>
+                        <span>QP</span>
                       </a>
-                    )}
+                      {selectedFile.ms && (
+                        <a
+                          href={selectedFile.ms.replace("/preview", "/view")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
+                        >
+                          <Download size={14} />
+                          <span>MS</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-0">
               {selectedFile ? (
-                <div className="flex flex-col md:flex-row flex-1 gap-0 h-full">
+                <div className="flex flex-col md:flex-row flex-1 gap-2 md:gap-0 h-full">
                   {/* Always show Question Paper */}
                   <div
                     className={
@@ -1556,10 +1539,21 @@ export default function PastPapersNavigator() {
                   <h2 className="text-2xl font-bold text-gray-300 mb-2">
                     Welcome to Past Papers Navigator
                   </h2>
-                  <p className="text-gray-400 max-w-md">
+                  <p className="text-gray-400 max-w-md mb-6">
                     Tap the "Papers" button to browse and select past exam
                     papers. View question papers, mark schemes, and more.
                   </p>
+
+                  {/* Open Navigator button for mobile view */}
+                  {isMobile && (
+                    <button
+                      onClick={openModal}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <FileText size={18} />
+                      <span>Open Navigator</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
