@@ -26,38 +26,24 @@ import {
   AlertTriangle,
   Maximize,
   Minimize,
-  Settings,
-  BookMarked,
-  BarChart2,
-  PenTool,
-  Brain,
-  HelpCircle,
-  LogIn,
-  User,
 } from "lucide-react";
 import fileStructure from "../data/fileStructure.json";
 import Timer from "./Timer";
 import { getPaperDuration } from "../data/examDurations";
 import "../animations.css";
-import Sidebar from "./Sidebar";
 
 // PDF Viewer Component
 function PDFViewer({ file, title }) {
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden flex-1 h-full">
+    <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl flex-1 h-full">
       <iframe
         src={file}
         title={title}
-        className="w-full h-full"
+        className="w-full h-full rounded-lg"
         allow="autoplay"
         allowFullScreen
         scrolling="yes"
-        style={{
-          minHeight: "100%",
-          minWidth: "100%",
-          display: "block",
-          border: "none",
-        }}
+        style={{ minHeight: "100%", minWidth: "100%" }}
       />
     </div>
   );
@@ -84,9 +70,6 @@ export default function PastPapersNavigator() {
   const [originalTab, setOriginalTab] = useState("qp");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExitFullscreenModal, setShowExitFullscreenModal] = useState(false);
-  const [timerRunning, setTimerRunning] = useState(false);
-  const [initialExamMode, setInitialExamMode] = useState(false);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const examContainerRef = useRef(null);
   const userInitiatedExitRef = useRef(false);
 
@@ -348,7 +331,7 @@ export default function PastPapersNavigator() {
     const parts = path.split("/").filter(Boolean);
     const breadcrumb = parts.map((part, index) => {
       const currentPath = parts.slice(0, index + 1).join("/");
-      return { label: part, path: currentPath };
+      return { name: part, path: currentPath };
     });
     setBreadcrumbs(breadcrumb);
     setActivePath(path);
@@ -674,10 +657,8 @@ export default function PastPapersNavigator() {
     console.log("Fullscreen button clicked with event handler");
 
     if (isFullscreen) {
-      // Exit fullscreen directly
-      console.log("Currently in fullscreen, exiting directly");
-      userInitiatedExitRef.current = true;
-      exitFullscreen();
+      console.log("Currently in fullscreen, showing exit modal");
+      setShowExitFullscreenModal(true);
     } else {
       console.log("Not in fullscreen, attempting to enter fullscreen");
       if (examContainerRef.current) {
@@ -726,9 +707,15 @@ export default function PastPapersNavigator() {
         }
       }
     } else {
-      // Exit fullscreen directly, even in exam mode
-      console.log("Exiting fullscreen directly");
-      userInitiatedExitRef.current = true;
+      // If in exam mode, show confirmation modal first
+      if (examMode) {
+        console.log("In exam mode, showing confirmation modal");
+        setShowExitFullscreenModal(true);
+        return;
+      }
+
+      // Exit fullscreen if not in exam mode
+      console.log("Not in exam mode, exiting fullscreen directly");
       exitFullscreen();
     }
   };
@@ -758,43 +745,6 @@ export default function PastPapersNavigator() {
     }
   };
 
-  // Add a separate effect to handle ESC key for the modal
-  useEffect(() => {
-    const handleEscKey = (e) => {
-      if (e.key === "Escape") {
-        console.log("ESC key pressed");
-
-        if (examMode && isFullscreen) {
-          // Exit fullscreen directly without showing modal
-          console.log("Exiting fullscreen directly");
-          userInitiatedExitRef.current = true;
-          setShowExitFullscreenModal(false);
-
-          // Actually exit fullscreen
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-          } else if (document.mozCancelFullScreen) {
-            document.mozCancelFullScreen();
-          } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-          }
-
-          setIsFullscreen(false);
-        }
-      }
-    };
-
-    // Add event listener for ESC key
-    document.addEventListener("keydown", handleEscKey, true);
-
-    // Remove event listener when component unmounts
-    return () => {
-      document.removeEventListener("keydown", handleEscKey, true);
-    };
-  }, [examMode, isFullscreen]);
-
   // Listen for fullscreen change events
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -811,26 +761,33 @@ export default function PastPapersNavigator() {
       // Update the state to match reality
       setIsFullscreen(isCurrentlyFullscreen);
 
-      // If exiting fullscreen while in exam mode and not user initiated, try to re-enter
+      // If exiting fullscreen while in exam mode and not user initiated, show modal
       if (!isCurrentlyFullscreen && examMode && !userInitiatedExitRef.current) {
-        // Try to re-enter fullscreen after a short delay
-        setTimeout(() => {
-          if (
-            !document.fullscreenElement &&
-            examContainerRef.current &&
-            !userInitiatedExitRef.current // Don't re-enter if user explicitly chose to exit
-          ) {
-            console.log("Attempting to re-enter fullscreen");
-            if (examContainerRef.current.requestFullscreen) {
-              examContainerRef.current.requestFullscreen();
-            } else if (examContainerRef.current.webkitRequestFullscreen) {
-              examContainerRef.current.webkitRequestFullscreen();
-            } else if (examContainerRef.current.msRequestFullscreen) {
-              examContainerRef.current.msRequestFullscreen();
+        console.log("Showing exit fullscreen modal");
+        setShowExitFullscreenModal(true);
+
+        // If we're in exam mode and the user pressed ESC (not user initiated through our UI),
+        // try to re-enter fullscreen after a short delay
+        if (examMode && !userInitiatedExitRef.current) {
+          setTimeout(() => {
+            if (
+              !document.fullscreenElement &&
+              examContainerRef.current &&
+              !showExitFullscreenModal &&
+              !userInitiatedExitRef.current // Don't re-enter if user explicitly chose to exit
+            ) {
+              console.log("Attempting to re-enter fullscreen");
+              if (examContainerRef.current.requestFullscreen) {
+                examContainerRef.current.requestFullscreen();
+              } else if (examContainerRef.current.webkitRequestFullscreen) {
+                examContainerRef.current.webkitRequestFullscreen();
+              } else if (examContainerRef.current.msRequestFullscreen) {
+                examContainerRef.current.msRequestFullscreen();
+              }
+              setIsFullscreen(true);
             }
-            setIsFullscreen(true);
-          }
-        }, 300);
+          }, 300);
+        }
       }
 
       // Reset the user initiated flag after a delay to ensure it's not reset too early
@@ -861,7 +818,57 @@ export default function PastPapersNavigator() {
         handleFullscreenChange
       );
     };
-  }, [examMode]);
+  }, [examMode, showExitFullscreenModal]);
+
+  // Add a separate effect to handle ESC key for the modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape") {
+        console.log(
+          "ESC key pressed, showExitFullscreenModal:",
+          showExitFullscreenModal
+        );
+
+        if (examMode && isFullscreen) {
+          if (showExitFullscreenModal) {
+            // Second ESC press - exit fullscreen
+            console.log("Second ESC press - exiting fullscreen");
+            userInitiatedExitRef.current = true;
+            setShowExitFullscreenModal(false);
+
+            // Actually exit fullscreen
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+              document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+              document.msExitFullscreen();
+            }
+
+            setIsFullscreen(false);
+          } else {
+            // First ESC press - show modal
+            console.log("First ESC press - showing modal");
+            setShowExitFullscreenModal(true);
+
+            // Prevent default behavior (which would exit fullscreen)
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+      }
+    };
+
+    // Add event listener for ESC key
+    document.addEventListener("keydown", handleEscKey, true);
+
+    // Remove event listener when component unmounts
+    return () => {
+      document.removeEventListener("keydown", handleEscKey, true);
+    };
+  }, [examMode, isFullscreen, showExitFullscreenModal]);
 
   // Auto-enter fullscreen when exam mode is activated
   useEffect(() => {
@@ -888,55 +895,72 @@ export default function PastPapersNavigator() {
     }
   }, [examMode, isFullscreen]);
 
-  // Add the handleBreadcrumbClick function if it doesn't exist
-  const handleBreadcrumbClick = (index) => {
-    if (index >= breadcrumbs.length) return;
-
-    // Get the path up to the clicked breadcrumb
-    const newPath = breadcrumbs[index].path;
-
-    // Navigate to that path
-    let currentNode = fileStructure;
-    const pathParts = newPath.split("/");
-
-    for (const part of pathParts) {
-      if (currentNode[part]) {
-        currentNode = currentNode[part];
-        // Make sure this part is expanded
-        setExpanded((prev) => ({ ...prev, [part]: true }));
-      } else {
-        break;
-      }
-    }
-
-    // Update the active path
-    setActivePath(newPath);
-
-    // Update breadcrumbs
-    const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
-    setBreadcrumbs(newBreadcrumbs);
-  };
-
-  // Add the missing handleFullscreenToggle function
-  const handleFullscreenToggle = () => {
-    toggleFullscreen();
-  };
-
-  // Add the handleTimerToggle function
-  const handleTimerToggle = (isRunning) => {
-    setTimerRunning(isRunning);
-  };
-
-  // Add the handleTimerMount function
-  const handleTimerMount = () => {
-    console.log("Timer component mounted");
-    // Any initialization code for the timer can go here
-  };
-
   // Main render function
   return (
     <>
       {/* Exit Fullscreen Confirmation Modal */}
+      {showExitFullscreenModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[10000] p-4 animate-fadeIn">
+          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-red-700 animate-scaleIn">
+            <div className="flex items-center space-x-3 text-red-400 mb-4">
+              <AlertTriangle size={28} className="animate-pulse" />
+              <h3 className="text-2xl font-bold">Exit Fullscreen?</h3>
+            </div>
+
+            <div className="text-center mb-6">
+              <p className="text-gray-300 mb-4">
+                You are about to exit fullscreen mode while your exam is still
+                running.
+              </p>
+
+              <div className="bg-gray-700 p-4 rounded-lg my-6">
+                <p className="text-3xl font-bold text-white mb-2">
+                  Press ESC Key Again
+                </p>
+                <p className="text-xl text-gray-300">To exit fullscreen mode</p>
+              </div>
+
+              <p className="text-gray-400 italic">
+                For the best exam experience, it's recommended to stay in
+                fullscreen mode until you complete your exam.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  // Stay in fullscreen - close modal and re-enter fullscreen if needed
+                  setShowExitFullscreenModal(false);
+
+                  // Check if we're still in fullscreen, if not, re-enter
+                  const isCurrentlyFullscreen =
+                    !!document.fullscreenElement ||
+                    !!document.webkitFullscreenElement ||
+                    !!document.mozFullScreenElement ||
+                    !!document.msFullscreenElement;
+
+                  if (!isCurrentlyFullscreen && examContainerRef.current) {
+                    console.log("Re-entering fullscreen from Stay button");
+                    if (examContainerRef.current.requestFullscreen) {
+                      examContainerRef.current.requestFullscreen();
+                    } else if (
+                      examContainerRef.current.webkitRequestFullscreen
+                    ) {
+                      examContainerRef.current.webkitRequestFullscreen();
+                    } else if (examContainerRef.current.msRequestFullscreen) {
+                      examContainerRef.current.msRequestFullscreen();
+                    }
+                    setIsFullscreen(true);
+                  }
+                }}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white transition-colors"
+              >
+                Stay in Fullscreen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Render exam mode view if in exam mode */}
       {examMode && selectedFile ? (
@@ -1018,55 +1042,71 @@ export default function PastPapersNavigator() {
                 </span>
               </div>
             </div>
+
+            {/* Fullscreen button positioned absolutely */}
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              {!isFullscreen && (
+                <button
+                  onClick={handleFullscreenButtonClick}
+                  className="p-1.5 rounded-md hover:bg-red-800 transition-colors"
+                  aria-label="Enter fullscreen"
+                >
+                  <Maximize size={18} />
+                </button>
+              )}
+              {isFullscreen && (
+                <div className="text-xs text-white/70 italic">
+                  Press ESC to exit
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Single Navbar with Tabs and Timer for Exam Mode */}
-          <div className="flex items-center justify-center p-2 bg-gray-800 border-b border-gray-700">
-            {/* Timer Component - Centered */}
-            <Timer
-              duration={timerDuration}
-              onExamModeChange={handleExamModeChange}
-              initialExamMode={true}
-              onMount={() => {
-                // Request fullscreen when Timer mounts with initialExamMode=true
-                console.log("Timer mounted with initialExamMode=true");
-                setTimeout(() => {
-                  if (examContainerRef.current) {
-                    try {
-                      if (examContainerRef.current.requestFullscreen) {
-                        examContainerRef.current.requestFullscreen();
-                      } else if (
-                        examContainerRef.current.webkitRequestFullscreen
-                      ) {
-                        examContainerRef.current.webkitRequestFullscreen();
-                      } else if (examContainerRef.current.msRequestFullscreen) {
-                        examContainerRef.current.msRequestFullscreen();
+          {/* Timer Bar - Centered */}
+          <div className="bg-gray-800 p-3 border-b border-gray-700 flex justify-center items-center">
+            <div className="scale-125 transform">
+              <Timer
+                duration={timerDuration}
+                onExamModeChange={handleExamModeChange}
+                initialExamMode={true}
+                onMount={() => {
+                  // Request fullscreen when Timer mounts with initialExamMode=true
+                  console.log("Timer mounted with initialExamMode=true");
+                  setTimeout(() => {
+                    if (examContainerRef.current) {
+                      try {
+                        if (examContainerRef.current.requestFullscreen) {
+                          examContainerRef.current.requestFullscreen();
+                        } else if (
+                          examContainerRef.current.webkitRequestFullscreen
+                        ) {
+                          examContainerRef.current.webkitRequestFullscreen();
+                        } else if (
+                          examContainerRef.current.msRequestFullscreen
+                        ) {
+                          examContainerRef.current.msRequestFullscreen();
+                        }
+                        setIsFullscreen(true);
+                      } catch (error) {
+                        console.error("Error entering fullscreen:", error);
                       }
-                      setIsFullscreen(true);
-                    } catch (error) {
-                      console.error("Error entering fullscreen:", error);
                     }
-                  }
-                }, 100);
-              }}
-            />
+                  }, 100);
+                }}
+              />
+            </div>
           </div>
 
           {/* PDF Viewer */}
           <div className="flex-1 p-4 overflow-hidden">
-            <div className="bg-gray-800 rounded-xl overflow-hidden h-full">
+            <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-xl h-full">
               <iframe
                 src={selectedFile.qp}
-                className="w-full h-full"
+                className="w-full h-full rounded-lg"
                 allow="autoplay"
                 allowFullScreen
                 scrolling="yes"
-                style={{
-                  minHeight: "100%",
-                  minWidth: "100%",
-                  display: "block",
-                  border: "none",
-                }}
+                style={{ minHeight: "100%", minWidth: "100%" }}
               />
             </div>
           </div>
@@ -1075,37 +1115,96 @@ export default function PastPapersNavigator() {
         <div className="flex h-screen bg-gray-900 text-white relative overflow-hidden">
           {/* Sidebar Navigator for PC */}
           {!isMobile && (
-            <Sidebar
-              onSelect={(path) => {
-                // Handle sidebar item selection
-                if (path === "/papers") {
-                  // This is the default view, just expand the sidebar if it's collapsed
-                  if (!sidebarExpanded) {
-                    setSidebarExpanded(true);
-                  }
-                }
-                // Other paths can be handled as they are implemented
-              }}
-              onToggleFileNavigator={(shouldExpand) => {
-                // If shouldExpand is provided and true, always expand
-                // Otherwise toggle the state
-                if (shouldExpand === true) {
-                  setSidebarExpanded(true);
-                } else {
-                  setSidebarExpanded(!sidebarExpanded);
-                }
-              }}
-              onCollapse={(isCollapsed) => {
-                // This is a new prop to handle the sidebar's internal collapsed state
-                // We don't need to do anything with it since the Sidebar handles its own collapsed state
-                console.log("Sidebar collapsed:", isCollapsed);
-              }}
-              activePath="/papers" // Set the active path
-            />
+            <div
+              className={`bg-gray-800 overflow-hidden transition-all duration-300 border-r border-gray-700 flex flex-col ${
+                sidebarExpanded ? "w-72" : "w-16"
+              }`}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                {sidebarExpanded ? (
+                  <>
+                    <h1 className="font-bold text-xl text-white">
+                      Past Papers
+                    </h1>
+                    <button
+                      onClick={toggleSidebar}
+                      className="p-1 rounded-md hover:bg-gray-700 transition-colors"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={toggleSidebar}
+                    className="p-1 rounded-md hover:bg-gray-700 transition-colors mx-auto"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                )}
+              </div>
+
+              {sidebarExpanded && (
+                <>
+                  <div className="p-3">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search papers..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <Search
+                        size={16}
+                        className="absolute left-3 top-2.5 text-gray-400"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    {searchQuery ? (
+                      <div className="p-3">
+                        <h3 className="text-xs uppercase text-gray-500 font-semibold mb-2">
+                          Search Results
+                        </h3>
+                        {isSearching ? (
+                          <div className="text-center py-4 text-gray-400">
+                            Searching...
+                          </div>
+                        ) : (
+                          renderSearchResults()
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-1">{renderTree(fileStructure)}</div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {!sidebarExpanded && (
+                <div className="flex flex-col items-center mt-6 space-y-6 text-gray-400">
+                  <FileText
+                    size={24}
+                    className="hover:text-blue-400 cursor-pointer"
+                    onClick={toggleSidebar}
+                    title="Past Papers"
+                  />
+                </div>
+              )}
+            </div>
           )}
 
-          {/* Mobile Sidebar Modal */}
-          {isMobile && modalOpen && (
+          {/* Modal Navigator for Mobile */}
+          {modalOpen && isMobile && (
             <div
               className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center z-[9000] p-4 pt-16 overflow-y-auto"
               onClick={(e) => {
@@ -1144,9 +1243,9 @@ export default function PastPapersNavigator() {
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="absolute right-2.5 top-2 text-gray-400 hover:text-white"
+                        className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
                       >
-                        <X size={14} />
+                        <X size={16} />
                       </button>
                     )}
                   </div>
@@ -1174,220 +1273,26 @@ export default function PastPapersNavigator() {
             </div>
           )}
 
-          {/* Mobile Sidebar Modal */}
-          {isMobile && !examMode && (
-            <div
-              id="mobileSidebarModal"
-              className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] transition-opacity duration-300 ${
-                showMobileSidebar
-                  ? "opacity-100"
-                  : "opacity-0 pointer-events-none"
-              }`}
-              onClick={() => setShowMobileSidebar(false)}
-            >
-              <div
-                className={`bg-gray-900 w-3/4 max-w-xs h-full transition-transform duration-300 ${
-                  showMobileSidebar ? "translate-x-0" : "-translate-x-full"
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* App Logo/Title */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-800">
-                  <div className="flex items-center gap-3">
-                    <FileText size={24} className="text-blue-500" />
-                    <h1 className="text-xl font-bold">Past Papers</h1>
-                  </div>
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
+            {selectedFile ? (
+              <>
+                {/* Mobile Navigation Button */}
+                {isMobile && (
                   <button
-                    onClick={() => setShowMobileSidebar(false)}
-                    className="p-1.5 rounded-md hover:bg-gray-700 transition-colors"
+                    onClick={openModal}
+                    className="fixed top-1 right-1 z-50 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors"
+                    aria-label="Open Navigator"
                   >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                {/* Main Navigation */}
-                <div className="p-4">
-                  <h3 className="text-xs uppercase text-gray-500 font-semibold mb-3">
-                    Main
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white bg-blue-600">
-                      <Home size={20} />
-                      <span>Home</span>
-                    </button>
-                    <button
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white"
-                      onClick={() => {
-                        setShowMobileSidebar(false);
-                        openModal();
-                      }}
-                    >
-                      <FileText size={20} />
-                      <span>Past Papers</span>
-                    </button>
-                  </div>
-
-                  <h3 className="text-xs uppercase text-gray-500 font-semibold mt-6 mb-3">
-                    Features
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <BarChart2 size={20} />
-                      <span>Dashboard</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <BookOpen size={20} />
-                      <span>Notes</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <PenTool size={20} />
-                      <span>Topical Questions</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <Brain size={20} />
-                      <span>AI Mock Grader</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                  </div>
-
-                  <h3 className="text-xs uppercase text-gray-500 font-semibold mt-6 mb-3">
-                    Account
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <LogIn size={20} />
-                      <span>Login</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white opacity-60">
-                      <User size={20} />
-                      <span>Profile</span>
-                      <span className="ml-auto text-xs bg-gray-700 px-2 py-0.5 rounded">
-                        Soon
-                      </span>
-                    </button>
-                  </div>
-
-                  <h3 className="text-xs uppercase text-gray-500 font-semibold mt-6 mb-3">
-                    Support
-                  </h3>
-                  <div className="space-y-2">
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white">
-                      <Settings size={20} />
-                      <span>Settings</span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white">
-                      <HelpCircle size={20} />
-                      <span>Help & Support</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* File Navigator Panel - Only visible when sidebar is expanded */}
-          {sidebarExpanded && !isMobile && (
-            <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col overflow-hidden">
-              <div className="p-2 border-b border-gray-700 flex justify-between items-center">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Search papers..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <Search
-                    size={14}
-                    className="absolute left-2.5 top-2 text-gray-400"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-2.5 top-2 text-gray-400 hover:text-white"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Collapse Button - Now inside the panel */}
-                <button
-                  onClick={toggleSidebar}
-                  className="ml-1.5 bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-full shadow-md flex-shrink-0 group relative"
-                  title="Hide File Navigator"
-                >
-                  <ChevronRight
-                    size={16}
-                    className="transform transition-transform rotate-180"
-                  />
-                  <span className="absolute right-full mr-2 whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    Hide File Navigator
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {searchQuery ? (
-                  <div className="p-3">
-                    <h3 className="text-xs uppercase text-gray-500 font-semibold mb-2">
-                      Search Results
-                    </h3>
-                    {isSearching ? (
-                      <div className="text-center py-4 text-gray-400">
-                        Searching...
-                      </div>
-                    ) : (
-                      renderSearchResults()
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-1">{renderTree(fileStructure)}</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Top Navigation Bar */}
-            <div className="bg-gray-800 border-b border-gray-700 p-1 flex items-center justify-between">
-              {/* Left side - Tab Navigation only (no hamburger menu) */}
-              <div className="flex items-center">
-                {/* File Navigator Toggle Button - Only visible when sidebar is collapsed */}
-                {!sidebarExpanded && !isMobile && (
-                  <button
-                    onClick={() => setSidebarExpanded(true)}
-                    className="mr-2 bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-md shadow-md flex items-center group relative"
-                    title="Show File Navigator"
-                  >
-                    <FileText size={14} className="mr-1" />
-                    <ChevronRight size={14} />
-                    <span className="absolute left-full ml-2 whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      Show File Navigator
-                    </span>
+                    <Menu size={24} />
                   </button>
                 )}
 
-                {/* Tab Navigation */}
-                {selectedFile && (
+                {/* Tab Navigation with Download Buttons and Timer */}
+                <div className="flex flex-wrap items-center justify-between p-2 bg-gray-800 border-b border-gray-700">
                   <div
                     className={`flex ${
-                      isMobile ? "flex-wrap gap-1" : "space-x-1"
+                      isMobile ? "flex-wrap gap-1" : "space-x-2"
                     }`}
                   >
                     <button
@@ -1401,7 +1306,7 @@ export default function PastPapersNavigator() {
                         setActiveTab("qp");
                       }}
                       className={`${
-                        isMobile ? "px-1.5 py-1 text-xs" : "px-3 py-1.5"
+                        isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
                       } rounded-md transition-colors ${
                         activeTab === "qp"
                           ? "bg-blue-600 text-white"
@@ -1430,7 +1335,7 @@ export default function PastPapersNavigator() {
                         setActiveTab("ms");
                       }}
                       className={`${
-                        isMobile ? "px-1.5 py-1 text-xs" : "px-3 py-1.5"
+                        isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
                       } rounded-md transition-colors ${
                         !selectedFile.ms
                           ? "bg-gray-700 text-gray-500 opacity-50 cursor-not-allowed"
@@ -1462,7 +1367,7 @@ export default function PastPapersNavigator() {
                         setActiveTab("sp");
                       }}
                       className={`${
-                        isMobile ? "px-1.5 py-1 text-xs" : "px-3 py-1.5"
+                        isMobile ? "px-2 py-1.5 text-xs" : "px-4 py-2"
                       } rounded-md transition-colors ${
                         !selectedFile.sp
                           ? "bg-gray-700 text-gray-500 opacity-50 cursor-not-allowed"
@@ -1478,55 +1383,43 @@ export default function PastPapersNavigator() {
                       </div>
                     </button>
                   </div>
-                )}
-              </div>
 
-              {/* Right side - Timer, Fullscreen, and Download buttons */}
-              {selectedFile && (
-                <div className="flex items-center space-x-2">
-                  {/* Timer Component */}
-                  {showTimer && (
-                    <Timer
-                      duration={timerDuration}
-                      isRunning={timerRunning}
-                      onToggle={handleTimerToggle}
-                      onExamModeChange={handleExamModeChange}
-                      initialExamMode={initialExamMode}
-                      onMount={handleTimerMount}
-                    />
-                  )}
+                  <div className="flex items-center space-x-2">
+                    {/* Timer Component */}
+                    {showTimer && !examMode && (
+                      <Timer
+                        duration={timerDuration}
+                        onExamModeChange={handleExamModeChange}
+                      />
+                    )}
 
-                  {/* Download buttons */}
-                  <div className="hidden md:flex space-x-1">
-                    <a
-                      href={selectedFile.qp.replace("/preview", "/view")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
-                    >
-                      <Download size={14} />
-                      <span>QP</span>
-                    </a>
-                    {selectedFile.ms && (
+                    <div className="hidden md:flex space-x-1">
                       <a
-                        href={selectedFile.ms.replace("/preview", "/view")}
+                        href={selectedFile.qp.replace("/preview", "/view")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
                       >
                         <Download size={14} />
-                        <span>MS</span>
+                        <span>QP</span>
                       </a>
-                    )}
+                      {selectedFile.ms && (
+                        <a
+                          href={selectedFile.ms.replace("/preview", "/view")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1.5 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors flex items-center space-x-1 text-xs"
+                        >
+                          <Download size={14} />
+                          <span>MS</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto p-0">
-              {selectedFile ? (
-                <div className="flex flex-col md:flex-row flex-1 gap-0 h-full">
+                {/* PDF Viewer */}
+                <div className="flex flex-col md:flex-row flex-1 gap-2 p-4 overflow-hidden">
                   {/* Always show Question Paper */}
                   <div
                     className={
@@ -1550,87 +1443,36 @@ export default function PastPapersNavigator() {
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                  <FileText size={64} className="text-gray-600 mb-4" />
-                  <h2 className="text-2xl font-bold text-gray-300 mb-2">
-                    Welcome to Past Papers Navigator
-                  </h2>
-                  <p className="text-gray-400 max-w-md">
-                    Tap the "Papers" button to browse and select past exam
-                    papers. View question papers, mark schemes, and more.
-                  </p>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-6">
+                  <FileText size={40} className="text-blue-500" />
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Mobile Bottom App Bar */}
-          {isMobile && !examMode && (
-            <div className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 p-2 z-50">
-              <div className="flex justify-around items-center">
-                <button
-                  onClick={() => setShowMobileSidebar(true)}
-                  className="flex flex-col items-center p-2 text-gray-300 hover:text-white"
-                >
-                  <Menu size={20} />
-                  <span className="text-xs mt-1">Menu</span>
-                </button>
-
-                <button
-                  onClick={openModal}
-                  className="flex flex-col items-center p-2 text-gray-300 hover:text-white"
-                >
-                  <FileText size={20} />
-                  <span className="text-xs mt-1">Papers</span>
-                </button>
-
-                {selectedFile && (
-                  <>
-                    <a
-                      href={selectedFile.qp.replace("/preview", "/view")}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex flex-col items-center p-2 text-gray-300 hover:text-white"
-                    >
-                      <Download size={20} />
-                      <span className="text-xs mt-1">QP</span>
-                    </a>
-
-                    {selectedFile.ms && (
-                      <a
-                        href={selectedFile.ms.replace("/preview", "/view")}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center p-2 text-gray-300 hover:text-white"
-                      >
-                        <BookMarked size={20} />
-                        <span className="text-xs mt-1">MS</span>
-                      </a>
-                    )}
-                  </>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Past Papers Navigator
+                </h2>
+                <p className="text-gray-400 max-w-md mb-6">
+                  Select a paper from the sidebar to view question papers, mark
+                  schemes, and solved papers.
+                </p>
+                {isMobile && (
+                  <button
+                    onClick={() => {
+                      console.log("Button clicked");
+                      openModal();
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Menu size={16} />
+                      <span>Open Navigator</span>
+                    </div>
+                  </button>
                 )}
-
-                <button
-                  onClick={() => {
-                    // Open search directly
-                    openModal();
-                    // Focus the search input after a short delay to ensure the modal is open
-                    setTimeout(() => {
-                      const searchInput = document.querySelector(
-                        'input[placeholder="Search papers..."]'
-                      );
-                      if (searchInput) searchInput.focus();
-                    }, 300);
-                  }}
-                  className="flex flex-col items-center p-2 text-gray-300 hover:text-white"
-                >
-                  <Search size={20} />
-                  <span className="text-xs mt-1">Search</span>
-                </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </>
