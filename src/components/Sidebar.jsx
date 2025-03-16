@@ -129,7 +129,7 @@ const Sidebar = ({
 
   return (
     <div
-      className={`h-screen bg-[#0D1321] text-white shadow-lg flex flex-col justify-between ${
+      className={`h-screen bg-[#0D1321] text-white shadow-2xl drop-shadow-xl flex flex-col justify-between ${
         collapsed ? "w-14" : "w-64"
       } transition-all duration-300 relative`}
     >
