@@ -1324,19 +1324,7 @@ export default function PastPapersNavigator() {
                 </div>
 
                 {/* Collapse Button - Now inside the panel */}
-                <button
-                  onClick={toggleSidebar}
-                  className="ml-1.5 bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-full shadow-md flex-shrink-0 group relative"
-                  title="Hide File Navigator"
-                >
-                  <ChevronRight
-                    size={16}
-                    className="transform transition-transform rotate-180"
-                  />
-                  <span className="absolute right-full mr-2 whitespace-nowrap bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    Hide File Navigator
-                  </span>
-                </button>
+                {/* Hide File Navigator button removed as requested */}
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar">

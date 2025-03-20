@@ -9,6 +9,7 @@ import {
   LogIn,
   HelpCircle,
   ChevronRight,
+  ChevronLeft,
   User,
   PenTool,
   Brain,
@@ -102,7 +103,21 @@ const Sidebar = ({
   onCollapse,
 }) => {
   const [collapsed, setCollapsed] = useState(true);
-  const [hoveredItem, setHoveredItem] = useState(null);
+  const [filePanelOpen, setFilePanelOpen] = useState(false); // Track file panel state
+
+  // Handle keyboard shortcut for toggling sidebar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+B (or Cmd+B on Mac) to toggle sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+        e.preventDefault(); // Prevent default browser behavior
+        setCollapsed((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleSelect = (item) => {
     if (item.comingSoon) {
@@ -113,6 +128,7 @@ const Sidebar = ({
     if (item.isFileNavigator && onToggleFileNavigator) {
       // If this is the file navigator item and we have a toggle handler, call it
       // Toggle the file navigator panel when "Past Papers" is selected
+      setFilePanelOpen(!filePanelOpen); // Toggle file panel state
       onToggleFileNavigator(); // No parameter means toggle
     } else if (onSelect) {
       // Otherwise, just call the regular onSelect handler
@@ -133,22 +149,11 @@ const Sidebar = ({
         collapsed ? "w-14" : "w-64"
       } transition-all duration-300 relative`}
     >
-      {/* Floating Toggle Button */}
-      <button
+      {/* App Logo/Title - Clickable to toggle sidebar */}
+      <div
+        className="flex items-center py-4 px-3 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 transition-colors"
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-2.5 top-16 z-10 bg-blue-600 hover:bg-blue-700 text-white p-1 rounded-full shadow-md"
-        title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
-        <ChevronRight
-          size={16}
-          className={`transform transition-transform ${
-            collapsed ? "" : "rotate-180"
-          }`}
-        />
-      </button>
-
-      {/* App Logo/Title */}
-      <div className="flex items-center py-4 px-3 border-b border-gray-800">
         {collapsed ? (
           <FileText size={24} className="text-blue-500" />
         ) : (
@@ -167,8 +172,7 @@ const Sidebar = ({
           collapsed={collapsed}
           onSelect={handleSelect}
           activePath={activePath}
-          onHover={setHoveredItem}
-          hoveredItem={hoveredItem}
+          filePanelOpen={filePanelOpen}
         />
 
         {/* Features Section */}
@@ -179,8 +183,7 @@ const Sidebar = ({
             collapsed={collapsed}
             onSelect={handleSelect}
             activePath={activePath}
-            onHover={setHoveredItem}
-            hoveredItem={hoveredItem}
+            filePanelOpen={filePanelOpen}
           />
         </div>
 
@@ -192,8 +195,7 @@ const Sidebar = ({
             collapsed={collapsed}
             onSelect={handleSelect}
             activePath={activePath}
-            onHover={setHoveredItem}
-            hoveredItem={hoveredItem}
+            filePanelOpen={filePanelOpen}
           />
         </div>
       </div>
@@ -205,8 +207,7 @@ const Sidebar = ({
           collapsed={collapsed}
           onSelect={handleSelect}
           activePath={activePath}
-          onHover={setHoveredItem}
-          hoveredItem={hoveredItem}
+          filePanelOpen={filePanelOpen}
         />
       </div>
     </div>
@@ -228,8 +229,7 @@ const SidebarSection = ({
   collapsed,
   onSelect,
   activePath,
-  onHover,
-  hoveredItem,
+  filePanelOpen,
 }) => {
   return (
     <div className="space-y-1">
@@ -240,8 +240,7 @@ const SidebarSection = ({
           collapsed={collapsed}
           isActive={activePath === item.path}
           onSelect={() => onSelect(item)}
-          onHover={onHover}
-          isHovered={hoveredItem === item.id}
+          filePanelOpen={filePanelOpen}
         />
       ))}
     </div>
@@ -253,8 +252,7 @@ const SidebarItem = ({
   collapsed,
   isActive,
   onSelect,
-  onHover,
-  isHovered,
+  filePanelOpen,
 }) => {
   const { id, icon, text, comingSoon } = item;
 
@@ -272,17 +270,26 @@ const SidebarItem = ({
         ${comingSoon ? "opacity-40" : ""}
         transition-all duration-200`}
       onClick={onSelect}
-      onMouseEnter={() => onHover(id)}
-      onMouseLeave={() => onHover(null)}
       title={comingSoon ? `${text} - Coming Soon` : text}
     >
       <div
         className={`flex-shrink-0 ${
-          collapsed && isPastPapersItem ? "animate-breathing" : ""
+          collapsed && isPastPapersItem ? "animate-breathing text-blue-400" : ""
         }`}
       >
         {icon}
       </div>
+
+      {/* Show arrow indicator for Past Papers when collapsed */}
+      {collapsed && isPastPapersItem && (
+        <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 text-blue-400">
+          {filePanelOpen ? (
+            <ChevronRight size={14} className="animate-arrow-pulse" />
+          ) : (
+            <ChevronLeft size={14} className="animate-arrow-pulse" />
+          )}
+        </div>
+      )}
 
       {!collapsed && (
         <>
@@ -293,18 +300,6 @@ const SidebarItem = ({
             </span>
           )}
         </>
-      )}
-
-      {collapsed && isHovered && (
-        <div className="absolute left-full ml-1.5 z-50 bg-gray-800/95 backdrop-blur-sm text-white text-sm py-1.5 px-3 rounded-md shadow-lg whitespace-nowrap border border-gray-700 animate-fadeIn">
-          {text}
-          {comingSoon && (
-            <div className="flex items-center mt-0.5">
-              <Clock size={10} className="text-blue-400 mr-1" />
-              <span className="text-blue-300 italic text-xs">Soon</span>
-            </div>
-          )}
-        </div>
       )}
     </div>
   );
