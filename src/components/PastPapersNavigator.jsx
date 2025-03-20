@@ -440,7 +440,12 @@ export default function PastPapersNavigator() {
   };
 
   const renderTree = (node, path = "") => {
-    return Object.keys(node).map((key) => {
+    // Sort years in descending order if this is a year folder
+    const keys = Object.keys(node);
+    const isYearFolder = keys.every((key) => /^\d{4}$/.test(key));
+    const sortedKeys = isYearFolder ? keys.sort((a, b) => b - a) : keys;
+
+    return sortedKeys.map((key) => {
       const currentPath = path ? `${path}/${key}` : key;
       const isActive = activePath.includes(currentPath);
       const isLeaf = node[key].qp !== undefined;
