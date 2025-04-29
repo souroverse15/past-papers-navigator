@@ -1,36 +1,38 @@
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Menu,
   FileText,
-  Home,
   BarChart2,
   BookOpen,
   Settings,
   LogIn,
+  LogOut,
   HelpCircle,
   ChevronRight,
   ChevronLeft,
   User,
   PenTool,
   Brain,
-  Clock,
+  ShieldCheck,
+  Zap,
+  GraduationCap,
+  Flame,
+  Users,
+  Files,
+  FileEdit,
+  AlertTriangle,
 } from "lucide-react";
 
 // Define sidebar sections for easy addition of new items
 const SIDEBAR_SECTIONS = {
   MAIN: [
     {
-      id: "home",
-      icon: <Home size={20} />,
-      text: "Home",
-      path: "/",
-      comingSoon: true,
-    },
-    {
       id: "papers",
       icon: <FileText size={20} />,
       text: "Past Papers",
-      path: "/papers",
+      path: "/",
       isFileNavigator: true,
     },
   ],
@@ -40,14 +42,22 @@ const SIDEBAR_SECTIONS = {
       icon: <BarChart2 size={20} />,
       text: "Dashboard",
       path: "/dashboard",
-      comingSoon: true,
+      requiresAuth: true,
+    },
+    {
+      id: "admin-dashboard",
+      icon: <ShieldCheck size={20} />,
+      text: "Admin Dashboard",
+      path: "/admin",
+      requiresAuth: true,
+      requiredRole: "Admin",
     },
     {
       id: "notes",
       icon: <BookOpen size={20} />,
       text: "Notes",
       path: "/notes",
-      comingSoon: true,
+      requiresAuth: true,
     },
     {
       id: "topical",
@@ -55,6 +65,7 @@ const SIDEBAR_SECTIONS = {
       text: "Topical Questions",
       path: "/topical",
       comingSoon: true,
+      requiresAuth: true,
     },
     {
       id: "ai-grader",
@@ -62,6 +73,7 @@ const SIDEBAR_SECTIONS = {
       text: "AI Mock Grader",
       path: "/ai-grader",
       comingSoon: true,
+      requiresAuth: true,
     },
   ],
   ACCOUNT: [
@@ -70,23 +82,18 @@ const SIDEBAR_SECTIONS = {
       icon: <LogIn size={20} />,
       text: "Login",
       path: "/login",
-      comingSoon: true,
+      hideWhenLoggedIn: true,
     },
     {
-      id: "profile",
-      icon: <User size={20} />,
-      text: "Profile",
-      path: "/profile",
-      comingSoon: true,
+      id: "logout",
+      icon: <LogOut size={20} />,
+      text: "Logout",
+      action: "logout",
+      showWhenLoggedIn: true,
+      requiresAuth: true,
     },
   ],
   SUPPORT: [
-    {
-      id: "settings",
-      icon: <Settings size={20} />,
-      text: "Settings",
-      path: "/settings",
-    },
     {
       id: "help",
       icon: <HelpCircle size={20} />,
@@ -96,14 +103,12 @@ const SIDEBAR_SECTIONS = {
   ],
 };
 
-const Sidebar = ({
-  onSelect,
-  activePath = "/",
-  onToggleFileNavigator,
-  onCollapse,
-}) => {
+const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
+  const { user, isAuthenticated, handleLogout, hasRole } = useAuth();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(true);
-  const [filePanelOpen, setFilePanelOpen] = useState(false); // Track file panel state
+  const [filePanelOpen, setFilePanelOpen] = useState(true); // Changed to true as default
+  const [activePath, setActivePath] = useState("/");
 
   // Handle keyboard shortcut for toggling sidebar
   useEffect(() => {
@@ -125,14 +130,16 @@ const Sidebar = ({
       return;
     }
 
-    if (item.isFileNavigator && onToggleFileNavigator) {
-      // If this is the file navigator item and we have a toggle handler, call it
-      // Toggle the file navigator panel when "Past Papers" is selected
-      setFilePanelOpen(!filePanelOpen); // Toggle file panel state
-      onToggleFileNavigator(); // No parameter means toggle
-    } else if (onSelect) {
-      // Otherwise, just call the regular onSelect handler
-      onSelect(item.path);
+    if (item.action === "logout") {
+      handleLogout();
+      navigate("/");
+      return;
+    }
+
+    // Navigate to the path first
+    if (item.path) {
+      navigate(item.path);
+      setActivePath(item.path);
     }
   };
 
@@ -142,6 +149,28 @@ const Sidebar = ({
       onCollapse(collapsed);
     }
   }, [collapsed, onCollapse]);
+
+  // Filter menu items based on authentication state and user role
+  const filterMenuItems = (items) => {
+    return items.filter((item) => {
+      // Hide dev-only items in production
+      if (item.devOnly && import.meta.env.PROD) return false;
+
+      // Hide items that require auth if not authenticated
+      if (item.requiresAuth && !isAuthenticated()) return false;
+
+      // Hide items that require specific role
+      if (item.requiredRole && !hasRole(item.requiredRole)) return false;
+
+      // Hide items marked to hide when logged in
+      if (item.hideWhenLoggedIn && isAuthenticated()) return false;
+
+      // Hide items marked to show only when logged in
+      if (item.showWhenLoggedIn && !isAuthenticated()) return false;
+
+      return true;
+    });
+  };
 
   return (
     <div
@@ -168,7 +197,7 @@ const Sidebar = ({
       <div className="flex-1 overflow-y-auto py-3 px-2">
         {/* Main Section */}
         <SidebarSection
-          items={SIDEBAR_SECTIONS.MAIN}
+          items={filterMenuItems(SIDEBAR_SECTIONS.MAIN)}
           collapsed={collapsed}
           onSelect={handleSelect}
           activePath={activePath}
@@ -179,7 +208,7 @@ const Sidebar = ({
         <div className="mt-4">
           <SidebarSectionTitle title="Features" collapsed={collapsed} />
           <SidebarSection
-            items={SIDEBAR_SECTIONS.FEATURES}
+            items={filterMenuItems(SIDEBAR_SECTIONS.FEATURES)}
             collapsed={collapsed}
             onSelect={handleSelect}
             activePath={activePath}
@@ -191,7 +220,7 @@ const Sidebar = ({
         <div className="mt-4">
           <SidebarSectionTitle title="Account" collapsed={collapsed} />
           <SidebarSection
-            items={SIDEBAR_SECTIONS.ACCOUNT}
+            items={filterMenuItems(SIDEBAR_SECTIONS.ACCOUNT)}
             collapsed={collapsed}
             onSelect={handleSelect}
             activePath={activePath}
@@ -203,13 +232,60 @@ const Sidebar = ({
       {/* Support Section */}
       <div className="py-3 px-2 border-t border-gray-800">
         <SidebarSection
-          items={SIDEBAR_SECTIONS.SUPPORT}
+          items={filterMenuItems(SIDEBAR_SECTIONS.SUPPORT)}
           collapsed={collapsed}
           onSelect={handleSelect}
           activePath={activePath}
           filePanelOpen={filePanelOpen}
         />
       </div>
+
+      {/* User profile section - when logged in */}
+      {isAuthenticated() && (
+        <div className="border-t border-gray-800 p-2">
+          <div
+            className={`flex items-center gap-3 p-2 rounded-lg bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            {user?.picture ? (
+              <img
+                src={user.picture}
+                alt=""
+                className={`rounded-full object-cover border-2 border-blue-500/30 ${
+                  collapsed ? "w-8 h-8" : "w-10 h-10"
+                }`}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                  e.target.parentElement.innerHTML = `<div class="${
+                    collapsed ? "w-8 h-8" : "w-10 h-10"
+                  } rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-500/30">${
+                    user?.name?.charAt(0) || user?.email?.charAt(0) || "U"
+                  }</div>`;
+                }}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div
+                className={`rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-500/30 ${
+                  collapsed ? "w-8 h-8" : "w-10 h-10"
+                }`}
+              >
+                {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+              </div>
+            )}
+            {!collapsed && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+                  {user?.name || user?.email}
+                </p>
+                <p className="text-xs text-gray-400">{user?.role || "User"}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -272,24 +348,7 @@ const SidebarItem = ({
       onClick={onSelect}
       title={comingSoon ? `${text} - Coming Soon` : text}
     >
-      <div
-        className={`flex-shrink-0 ${
-          collapsed && isPastPapersItem ? "animate-breathing text-blue-400" : ""
-        }`}
-      >
-        {icon}
-      </div>
-
-      {/* Show arrow indicator for Past Papers when collapsed */}
-      {collapsed && isPastPapersItem && (
-        <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 text-blue-400">
-          {filePanelOpen ? (
-            <ChevronRight size={14} className="animate-arrow-pulse" />
-          ) : (
-            <ChevronLeft size={14} className="animate-arrow-pulse" />
-          )}
-        </div>
-      )}
+      <div className="flex-shrink-0">{icon}</div>
 
       {!collapsed && (
         <>

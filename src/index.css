@@ -147,3 +147,561 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(75, 85, 99, 0.5) rgba(31, 41, 55, 0.5);
 }
+
+/* Login component styles */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0d1321;
+  padding: 20px;
+}
+
+.login-content {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 600px;
+  background-color: #111827;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.login-features {
+  flex: 1;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: white;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.login-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.login-features h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+.login-features > p {
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+  opacity: 0.9;
+}
+
+.login-feature-list {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.login-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.feature-icon {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 50%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-feature-item h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.login-feature-item p {
+  font-size: 0.95rem;
+  opacity: 0.8;
+  line-height: 1.5;
+}
+
+.login-form-container {
+  flex: 0.8;
+  background-color: #1f2937;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.login-card {
+  background-color: #0f172a;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-card-header {
+  margin-bottom: 2rem;
+}
+
+.login-card-header h2 {
+  color: white;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+
+.login-card-header p {
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.google-login-btn {
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.login-info {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login-link {
+  color: #60a5fa;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+/* Mobile styles for login */
+@media (max-width: 900px) {
+  .login-content {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .login-features {
+    padding: 2rem;
+  }
+
+  .login-feature-list {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-features {
+    padding: 1.5rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .login-features h2 {
+    font-size: 1.25rem;
+  }
+
+  .login-feature-item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .login-form-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .login-card {
+    padding: 1.5rem;
+  }
+}
+
+/* Loading indicator */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+/* App container for routing layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  background-color: #f5f5f5;
+  background-color: #0d1321; /* Update the background color to match the sidebar */
+  color: white;
+}
+
+/* Custom scrollbar for file navigation */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(75, 85, 99, 0.5) rgba(31, 41, 55, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.5);
+  border-radius: 20px;
+}
+
+/* Mobile responsiveness fixes */
+@media (max-width: 768px) {
+  .main-content {
+    width: 100%;
+    padding-bottom: 60px; /* Add bottom padding to account for mobile nav bar */
+  }
+
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Ensure mobile sidebar drawer is properly styled */
+  #mobileSidebarModal .bg-\[\#0D1321\] {
+    min-height: 100%;
+  }
+
+  /* Mobile bottom app bar styling */
+  .fixed.bottom-0.bg-gray-800 {
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+  }
+
+  /* Make sure PDF viewer has proper spacing on mobile */
+  .flex-1.overflow-y-auto.p-0 {
+    padding-bottom: 70px; /* Increase padding at bottom to ensure content is visible above nav bar */
+  }
+
+  /* Improve mobile navbar layout when paper is loaded */
+  .bg-gray-800.border-b.border-gray-700.p-1\.5 {
+    padding: 8px 4px;
+  }
+
+  /* Ensure tabs in the navbar are well-spaced */
+  .flex.flex-wrap.gap-1.justify-center.mb-1 button {
+    margin: 2px;
+  }
+
+  /* Ensure timer is properly sized on mobile */
+  .scale-90.origin-center {
+    transform-origin: center;
+    transform: scale(0.85);
+    margin-top: 4px;
+  }
+}
+
+/* Fix specific navbar issues for tablets and small desktops */
+@media (min-width: 769px) and (max-width: 992px) {
+  /* Reduce tab buttons padding on medium screens */
+  .bg-gray-800.border-b.border-gray-700 button {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  /* Ensure timer fits well on medium screens */
+  .bg-gray-800.border-b.border-gray-700 .flex.items-center {
+    gap: 8px;
+  }
+}
+
+/* Additional styling for PDF viewer iframe to ensure it fills container */
+iframe {
+  min-height: 100%;
+  min-width: 100%;
+  display: block;
+  border: none;
+}
+
+/* Side-by-side PDF viewer styles */
+.side-by-side-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.side-by-side-panel {
+  flex: 0 0 auto;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.side-by-side-divider {
+  width: 6px;
+  background-color: #374151;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+  z-index: 10;
+}
+
+.side-by-side-divider:hover,
+.side-by-side-divider:active {
+  background-color: #3b82f6;
+}
+
+.side-by-side-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 30px;
+  background-color: #6b7280;
+  border-radius: 4px;
+}
+
+.side-by-side-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Prevent text selection while dragging the divider */
+.resize-divider-active {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: col-resize;
+}
+
+/* Make sure iframe content is properly sized */
+iframe {
+  background-color: white;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .main-content {
+    width: 100%;
+    padding-bottom: 60px; /* Added to account for bottom app bar */
+  }
+
+  .app-container {
+    flex-direction: column;
+  }
+
+  .mobile-sidebar {
+    min-height: 100%;
+  }
+
+  /* Mobile animations */
+  .translate-x-0 {
+    transform: translateX(0);
+  }
+
+  .-translate-x-full {
+    transform: translateX(-100%);
+  }
+
+  /* Mobile bottom app bar styles */
+  .mobile-bottom-bar {
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+
+  /* Add padding to the bottom of the PDF viewer to ensure content is visible above navigation */
+  .pdf-container {
+    padding-bottom: 70px;
+  }
+}
+
+/* Custom scrollbar for file navigation */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+/* Animation for the exam mode banner */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+/* Stacked PDF viewer styles for mobile */
+.stacked-container {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stacked-panel {
+  position: relative;
+  overflow: hidden;
+  transition: height 0.2s ease;
+}
+
+.stacked-panel iframe {
+  background-color: white;
+  border: none;
+  width: 100%;
+  height: calc(100% - 28px);
+}
+
+.stacked-divider {
+  height: 20px;
+  background-color: #1f2937;
+  cursor: row-resize;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.stacked-divider:hover,
+.stacked-divider:active {
+  background-color: #374151;
+}
+
+@media (max-width: 768px) {
+  /* Handle bottom padding for mobile view */
+  .stacked-container {
+    padding-bottom: 60px; /* Account for bottom app bar */
+  }
+
+  .main-content {
+    width: 100%;
+    padding-bottom: 60px; /* Added to account for bottom app bar */
+  }
+
+  .app-container {
+    flex-direction: column;
+  }
+
+  .mobile-sidebar {
+    min-height: 100%;
+  }
+
+  /* Mobile animations */
+  .translate-x-0 {
+    transform: translateX(0);
+  }
+
+  .-translate-x-full {
+    transform: translateX(-100%);
+  }
+
+  /* Mobile bottom app bar styles */
+  .mobile-bottom-bar {
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+
+  /* Add padding to the bottom of the PDF viewer to ensure content is visible above navigation */
+  .pdf-container {
+    padding-bottom: 70px;
+  }
+}
+
+/* Custom scrollbar for file navigation */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #475569;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+/* Side-by-side PDF viewer styles */
+.side-by-side-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+/* Add custom animation for loading bar */
+@keyframes pulse-x {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-pulse-x {
+  animation: pulse-x 2s ease-in-out infinite;
+}

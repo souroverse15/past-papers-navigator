@@ -1,7 +1,7 @@
 export const examDurations = {
   IAL: {
     Mathematics: {
-      P1: 90,
+      P1: 1,
       P2: 90,
       P3: 90,
       P4: 90,

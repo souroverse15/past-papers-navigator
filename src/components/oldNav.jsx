@@ -968,98 +968,93 @@ export default function PastPapersNavigator() {
           ref={examContainerRef}
           className="flex flex-col h-screen bg-gray-900 text-white"
         >
-          {/* Exam Mode Header */}
-          <div className="bg-red-700 text-white py-1 overflow-hidden shadow-lg">
+          {/* Improved Exam Mode Header */}
+          <div className="bg-gradient-to-r from-red-900 via-red-800 to-red-900 border-b border-red-700/50 shadow-lg relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptMCAwdjZoNnYtNmgtNnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
+
             {/* Scrolling text container that spans the full width */}
             <div className="relative flex overflow-x-hidden">
-              <div className="animate-marquee whitespace-nowrap py-0.5">
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-              </div>
+              <div className="animate-marquee whitespace-nowrap py-2">
+                <div className="flex space-x-6 items-center">
+                  <span className="font-bold text-lg font-mono tracking-wider flex items-center bg-red-950/40 px-3 py-1 rounded-md border border-red-700/30">
+                    <Clock
+                      size={18}
+                      className="animate-pulse mr-2 text-red-300"
+                    />
+                    <span className="text-red-100">MOCK MODE ACTIVE</span>
+                  </span>
 
-              <div className="absolute top-0 animate-marquee2 whitespace-nowrap py-0.5">
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Clock size={20} className="animate-pulse mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-                <span className="font-bold text-lg mx-4 inline-flex items-center">
-                  <Lock size={20} className="mr-2" />
-                  MOCK MODE ACTIVE
-                </span>
-              </div>
-            </div>
+                  <span className="text-yellow-200 text-sm flex items-center bg-yellow-950/40 px-3 py-1.5 rounded-md border border-yellow-700/30">
+                    <AlertTriangle
+                      size={15}
+                      className="mr-1.5 text-yellow-300"
+                    />
+                    <span className="font-mono tracking-wider">
+                      PRESSING ESC WILL END THE MOCK
+                    </span>
+                  </span>
 
-            {/* Fullscreen button positioned absolutely */}
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              {!isFullscreen && (
-                <button
-                  onClick={handleFullscreenButtonClick}
-                  className="p-1.5 rounded-md hover:bg-red-800 transition-colors"
-                  aria-label="Enter fullscreen"
-                >
-                  <Maximize size={18} />
-                </button>
-              )}
-              {isFullscreen && (
-                <div className="text-xs text-white/70 italic">
-                  Press ESC to exit
+                  <span className="font-bold text-lg font-mono tracking-wider flex items-center bg-red-950/40 px-3 py-1 rounded-md border border-red-700/30">
+                    <Lock size={18} className="mr-2 text-red-300" />
+                    <span className="text-red-100">
+                      EXAM ENVIRONMENT LOCKED
+                    </span>
+                  </span>
+
+                  <span className="text-yellow-200 text-sm flex items-center bg-yellow-950/40 px-3 py-1.5 rounded-md border border-yellow-700/30">
+                    <AlertTriangle
+                      size={15}
+                      className="mr-1.5 text-yellow-300"
+                    />
+                    <span className="font-mono tracking-wider">
+                      EXITING FULLSCREEN WILL END THE MOCK
+                    </span>
+                  </span>
                 </div>
-              )}
+              </div>
+
+              <div className="absolute top-0 animate-marquee2 whitespace-nowrap py-2">
+                <div className="flex space-x-6 items-center">
+                  <span className="font-bold text-lg font-mono tracking-wider flex items-center bg-red-950/40 px-3 py-1 rounded-md border border-red-700/30">
+                    <Clock
+                      size={18}
+                      className="animate-pulse mr-2 text-red-300"
+                    />
+                    <span className="text-red-100">MOCK MODE ACTIVE</span>
+                  </span>
+
+                  <span className="text-yellow-200 text-sm flex items-center bg-yellow-950/40 px-3 py-1.5 rounded-md border border-yellow-700/30">
+                    <AlertTriangle
+                      size={15}
+                      className="mr-1.5 text-yellow-300"
+                    />
+                    <span className="font-mono tracking-wider">
+                      PRESSING ESC WILL END THE MOCK
+                    </span>
+                  </span>
+
+                  <span className="font-bold text-lg font-mono tracking-wider flex items-center bg-red-950/40 px-3 py-1 rounded-md border border-red-700/30">
+                    <Lock size={18} className="mr-2 text-red-300" />
+                    <span className="text-red-100">
+                      EXAM ENVIRONMENT LOCKED
+                    </span>
+                  </span>
+
+                  <span className="text-yellow-200 text-sm flex items-center bg-yellow-950/40 px-3 py-1.5 rounded-md border border-yellow-700/30">
+                    <AlertTriangle
+                      size={15}
+                      className="mr-1.5 text-yellow-300"
+                    />
+                    <span className="font-mono tracking-wider">
+                      EXITING FULLSCREEN WILL END THE MOCK
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
+
+            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
           </div>
 
           {/* Timer Bar - Centered */}

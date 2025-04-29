@@ -1,0 +1,1578 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  User,
+  FileText,
+  Clock,
+  Percent,
+  Award,
+  ClipboardList,
+  Info,
+  RefreshCw,
+  Filter,
+  Settings,
+  ArrowUpRight,
+  Calendar,
+  ChartLine,
+  ChevronDown,
+  TrendingUp,
+  LineChart,
+  BarChart,
+  Sigma,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { db } from "../firebase/config";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  setDoc,
+} from "firebase/firestore";
+
+// Add this function to calculate a performance comment based on scores
+const generatePerformanceComment = (scores, trend) => {
+  if (!scores || scores.length === 0) return "No data available to analyze.";
+
+  const latestScore = scores[scores.length - 1];
+  const averageScore =
+    scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
+  if (scores.length < 2)
+    return "Take more mock exams to see a performance trend.";
+
+  if (trend === "increasing") {
+    if (latestScore > 80) {
+      return "Excellent progress! Your scores are consistently improving and your latest result shows mastery of the material.";
+    } else if (latestScore > 60) {
+      return "Good improvement trend! Continue practicing to reach mastery level.";
+    } else {
+      return "You're making progress! Keep working on key concepts to continue improving.";
+    }
+  } else if (trend === "decreasing") {
+    if (latestScore > 80) {
+      return "Your latest score is still strong, but watch the downward trend. Review recent topics to ensure continued mastery.";
+    } else if (latestScore > 60) {
+      return "Your performance shows a slight decline. Consider revisiting recent topics to strengthen your understanding.";
+    } else {
+      return "Your scores have been decreasing. Focus on core concepts and consider additional practice on challenging topics.";
+    }
+  } else {
+    // stable
+    if (averageScore > 80) {
+      return "Consistently excellent performance! You've demonstrated strong mastery of this subject.";
+    } else if (averageScore > 60) {
+      return "Your performance is stable and good. Focus on specific topics to reach excellence.";
+    } else {
+      return "Your scores are consistent but could be improved. Consider focused practice on key concepts.";
+    }
+  }
+};
+
+// Add this function to determine the performance trend
+const determinePerformanceTrend = (scores) => {
+  if (!scores || scores.length < 3) return "neutral";
+
+  // Simple linear regression to determine trend
+  const n = scores.length;
+  const x = Array.from({ length: n }, (_, i) => i);
+  const y = scores;
+
+  const sumX = x.reduce((sum, val) => sum + val, 0);
+  const sumY = y.reduce((sum, val) => sum + val, 0);
+  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+  const sumXX = x.reduce((sum, val) => sum + val * val, 0);
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+
+  if (slope > 1) return "increasing";
+  if (slope < -1) return "decreasing";
+  return "stable";
+};
+
+export default function UserDashboard() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("performance");
+  const [mockExams, setMockExams] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [stats, setStats] = useState({
+    totalMocks: 0,
+    totalTimeSpent: 0,
+    avgScore: 0,
+    mostAttemptedSubject: "",
+    recentActivity: null,
+  });
+  const [subjectPreferences, setSubjectPreferences] = useState([]);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [imageError, setImageError] = useState(false);
+
+  // New state for performance analytics
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedUnit, setSelectedUnit] = useState("all");
+  const [filteredExams, setFilteredExams] = useState([]);
+  const [subjectList, setSubjectList] = useState([]);
+  const [unitList, setUnitList] = useState([]);
+  const [performanceData, setPerformanceData] = useState({
+    labels: [],
+    scores: [],
+    times: [],
+    trend: "neutral",
+    comment: "",
+  });
+
+  // Handle image loading error
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Fetch mock exam data for the current user
+  const fetchMockExams = async () => {
+    if (!user?.email) {
+      console.log("No user email to fetch mock exams");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log("Fetching mock exams for user:", user.email);
+
+      // Query Firestore for mock exams associated with this user
+      const mocksRef = collection(db, "mockExams");
+      const q = query(
+        mocksRef,
+        where("userEmail", "==", user.email),
+        orderBy("completedAt", "desc")
+      );
+
+      console.log("Mock exams query created");
+
+      const querySnapshot = await getDocs(q);
+      const examsData = [];
+
+      console.log(`Found ${querySnapshot.size} mock exam records`);
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log(`Mock exam record ${doc.id}:`, data);
+
+        // Extract path parts if available in rawPath but not in pathParts
+        let pathParts = data.pathParts || [];
+        if ((!pathParts || !pathParts.length) && data.rawPath) {
+          pathParts = data.rawPath.split("/");
+          console.log("Extracted pathParts from rawPath:", pathParts);
+        }
+
+        // Check if we have file data
+        if (data.fileData) {
+          console.log("Found fileData in mock exam record:", data.fileData);
+
+          // Use file path if available and we don't have a valid path yet
+          if (
+            data.fileData.path &&
+            (!data.rawPath || data.rawPath === "null")
+          ) {
+            console.log("Using path from fileData:", data.fileData.path);
+            data.rawPath = data.fileData.path;
+
+            // Recalculate path parts if needed
+            if (!pathParts || pathParts.length === 0) {
+              pathParts = data.fileData.path.split("/");
+              console.log(
+                "Re-extracted pathParts from fileData.path:",
+                pathParts
+              );
+            }
+          }
+
+          // Use file name for paper code if needed
+          if (
+            data.fileData.name &&
+            (!data.paperCode || data.paperCode === "Unknown")
+          ) {
+            console.log(
+              "Using name from fileData as paper code:",
+              data.fileData.name
+            );
+            data.paperCode = data.fileData.name;
+          }
+        }
+
+        // Process exam board from path if not available
+        let examBoard = data.examBoard || "Unknown";
+        if (examBoard === "Unknown" && pathParts.length > 0) {
+          const boardPart = pathParts[0];
+          if (boardPart === "IAL" || boardPart === "IGCSE") {
+            examBoard = boardPart;
+            console.log("Extracted examBoard from path:", examBoard);
+          }
+        }
+
+        // Process subject from path if not available
+        let subject = data.subject || "Unknown";
+        if (subject === "Unknown" && pathParts.length > 1) {
+          subject = pathParts[1];
+          console.log("Extracted subject from path:", subject);
+        }
+
+        // Process year from path if not available
+        let year = data.year || null;
+        if (!year && pathParts.length > 2 && /^20\d{2}$/.test(pathParts[2])) {
+          year = pathParts[2];
+          console.log("Extracted year from path:", year);
+        }
+
+        // Process session from path if not available
+        let session = data.session || null;
+        if (!session && pathParts.length > 3) {
+          session = pathParts[3];
+          console.log("Extracted session from path:", session);
+        }
+
+        // Ensure each record has all the required fields
+        const processedExam = {
+          id: doc.id,
+          ...data,
+          // Ensure these fields exist with enhanced data
+          pathParts: pathParts,
+          subject: subject,
+          paperCode: data.paperCode || "Unknown",
+          year: year,
+          session: session,
+          examBoard: examBoard,
+          paperTitle: data.paperTitle || null,
+          rawPath: data.rawPath || null,
+          completedAt: data.completedAt || null,
+          durationMinutes: data.durationMinutes || 0,
+          score: data.score !== undefined ? data.score : null,
+        };
+
+        // If paperTitle wasn't generated or is "Unknown", generate it now
+        if (
+          !processedExam.paperTitle ||
+          processedExam.paperTitle === "Unknown" ||
+          processedExam.paperTitle === "Unknown Subject"
+        ) {
+          processedExam.paperTitle = formatPaperTitle(processedExam);
+          console.log("Generated new paper title:", processedExam.paperTitle);
+        }
+
+        examsData.push(processedExam);
+      });
+
+      console.log("Total mock exams processed:", examsData.length);
+      console.log("Mock exam details:", examsData);
+      setMockExams(examsData);
+
+      // Calculate statistics
+      if (examsData.length > 0) {
+        // Total time spent (in minutes)
+        const totalTime = examsData.reduce(
+          (sum, exam) => sum + (exam.durationMinutes || 0),
+          0
+        );
+
+        // Get subject counts for finding most attempted
+        const subjectCounts = {};
+        examsData.forEach((exam) => {
+          const subject = exam.subject || "Unknown";
+          subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
+        });
+
+        // Find most attempted subject
+        const mostAttempted = Object.entries(subjectCounts).sort(
+          ([, a], [, b]) => b - a
+        )[0][0];
+
+        // Calculate average score if available
+        let avgScore = 0;
+        const examsWithScores = examsData.filter(
+          (exam) => exam.score !== undefined && exam.score !== null
+        );
+        if (examsWithScores.length > 0) {
+          avgScore =
+            examsWithScores.reduce((sum, exam) => sum + exam.score, 0) /
+            examsWithScores.length;
+        }
+
+        const newStats = {
+          totalMocks: examsData.length,
+          totalTimeSpent: totalTime,
+          avgScore: avgScore,
+          mostAttemptedSubject: mostAttempted,
+          recentActivity: examsData[0],
+        };
+
+        console.log("Calculated stats:", newStats);
+        setStats(newStats);
+      } else {
+        console.log("No mock exams found for user");
+      }
+    } catch (error) {
+      console.error("Error fetching mock exams:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch user subject preferences
+  const fetchSubjectPreferences = async () => {
+    if (!user?.email) {
+      console.log("No user email to fetch subject preferences");
+      return;
+    }
+
+    try {
+      console.log("Fetching subject preferences for user:", user.email);
+      const userPrefsDoc = doc(db, "userPreferences", user.email);
+      const docSnap = await getDoc(userPrefsDoc);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const subjects = data.subjects || [];
+        console.log("Found subject preferences:", subjects);
+        setSubjectPreferences(subjects);
+      } else {
+        console.log(
+          "No preferences document exists for user, creating default"
+        );
+        // Create default preferences if none exist
+        setSubjectPreferences([]);
+
+        // Optionally create a default document
+        try {
+          await setDoc(doc(db, "userPreferences", user.email), {
+            subjects: [],
+          });
+          console.log("Created default empty preferences document");
+        } catch (err) {
+          console.error("Error creating default preferences:", err);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching subject preferences:", error);
+    }
+  };
+
+  // Fetch all available subjects
+  const fetchAvailableSubjects = async () => {
+    try {
+      // Set default subjects based on what's actually in the file structure
+      const defaultSubjects = [
+        // IAL subjects
+        { id: "ial-mathematics", name: "IAL Mathematics" },
+
+        // IGCSE subjects
+        { id: "igcse-chemistry", name: "IGCSE Chemistry" },
+        { id: "igcse-physics", name: "IGCSE Physics" },
+        { id: "igcse-mathematics-a", name: "IGCSE Mathematics A" },
+        { id: "igcse-mathematics-b", name: "IGCSE Mathematics B" },
+        {
+          id: "igcse-further-pure-mathematics",
+          name: "IGCSE Further Pure Mathematics",
+        },
+      ];
+
+      // Set subjects to default first
+      setAvailableSubjects(defaultSubjects);
+
+      // Then try to load from database
+      const subjectsRef = collection(db, "subjects");
+      const querySnapshot = await getDocs(subjectsRef);
+      const subjects = [];
+
+      if (querySnapshot.size > 0) {
+        console.log(`Found ${querySnapshot.size} subjects in database`);
+        querySnapshot.forEach((doc) => {
+          subjects.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (subjects.length > 0) {
+          console.log("Using subjects from database:", subjects);
+          setAvailableSubjects(subjects);
+        }
+      } else {
+        console.log("No subjects found in database, using defaults");
+      }
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+      // Fallback subjects are already set
+    }
+  };
+
+  // Initial data load
+  useEffect(() => {
+    if (!user?.email) return;
+
+    fetchMockExams();
+    fetchSubjectPreferences();
+    fetchAvailableSubjects();
+  }, [user?.email]);
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchMockExams();
+    setIsRefreshing(false);
+  };
+
+  // Toggle a subject preference (add if not present, remove if present)
+  const toggleSubject = (subjectId) => {
+    // Ensure lowercase for consistency
+    const normalizedId = subjectId.toLowerCase();
+    console.log("Toggling subject preference:", normalizedId);
+
+    // Check if subject is already in preferences
+    let newPreferences;
+    if (subjectPreferences.includes(normalizedId)) {
+      // Remove subject
+      newPreferences = subjectPreferences.filter((id) => id !== normalizedId);
+    } else {
+      // Add subject
+      newPreferences = [...subjectPreferences, normalizedId];
+    }
+
+    // Update state immediately for fast UI response
+    setSubjectPreferences(newPreferences);
+
+    // Then save to database in the background
+    saveSubjectPreferencesInBackground(newPreferences);
+  };
+
+  // Save subject preferences without blocking the UI
+  const saveSubjectPreferencesInBackground = async (subjects) => {
+    if (!user?.email) {
+      console.log("No user email, cannot save preferences");
+      return;
+    }
+
+    // Ensure all subjects are lowercase for consistency
+    const normalizedSubjects = subjects.map((s) => s.toLowerCase());
+    console.log(
+      "Saving subject preferences in background:",
+      normalizedSubjects
+    );
+
+    try {
+      const userPrefsDoc = doc(db, "userPreferences", user.email);
+      await setDoc(
+        userPrefsDoc,
+        { subjects: normalizedSubjects },
+        { merge: true }
+      );
+      console.log("Subject preferences saved successfully");
+    } catch (error) {
+      console.error("Error saving subject preferences:", error);
+      // Show error but don't revert UI - could implement retry logic here
+      alert(
+        "Failed to save preferences. Changes may not persist after refresh."
+      );
+    }
+  };
+
+  // Check if a subject is selected in preferences
+  const isSubjectSelected = (subjectId) => {
+    return subjectPreferences.includes(subjectId.toLowerCase());
+  };
+
+  // Format date for display
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "N/A";
+
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Format time duration (minutes to hours and minutes)
+  const formatDuration = (minutes) => {
+    if (!minutes) return "N/A";
+
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+
+    if (hours === 0) return `${mins} min`;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Helper function to format subject display name
+  const formatSubjectName = (subjectId) => {
+    if (!subjectId) return "";
+
+    // Handle prefixed subjects
+    if (subjectId.startsWith("ial-") || subjectId.startsWith("igcse-")) {
+      const [prefix, ...parts] = subjectId.split("-");
+      const subject = parts.join(" ");
+      return `${prefix.toUpperCase()} ${
+        subject.charAt(0).toUpperCase() + subject.slice(1)
+      }`;
+    }
+
+    // Fallback for non-prefixed subjects
+    return subjectId.charAt(0).toUpperCase() + subjectId.slice(1);
+  };
+
+  // Toggle all subjects at once
+  const toggleAllSubjects = () => {
+    // If all subjects are already selected, deselect all
+    // Otherwise, select all
+    if (availableSubjects.every((subject) => isSubjectSelected(subject.id))) {
+      // Deselect all
+      setSubjectPreferences([]);
+      saveSubjectPreferencesInBackground([]);
+    } else {
+      // Select all
+      const allSubjectIds = availableSubjects.map((subject) =>
+        subject.id.toLowerCase()
+      );
+      setSubjectPreferences(allSubjectIds);
+      saveSubjectPreferencesInBackground(allSubjectIds);
+    }
+  };
+
+  // Check if all subjects are selected
+  const areAllSubjectsSelected = () => {
+    return (
+      availableSubjects.length > 0 &&
+      availableSubjects.every((subject) => isSubjectSelected(subject.id))
+    );
+  };
+
+  // Format paper title for display
+  const formatPaperTitle = (exam) => {
+    // If paper title exists and is not empty or "Unknown", return it
+    if (
+      exam.paperTitle &&
+      exam.paperTitle !== "Unknown" &&
+      exam.paperTitle !== "Unknown Subject"
+    ) {
+      return exam.paperTitle;
+    }
+
+    // Log the exam info for debugging
+    console.log("Generating paper title for exam record:", {
+      id: exam.id,
+      subject: exam.subject,
+      paperCode: exam.paperCode,
+      hasPathParts: exam.pathParts && exam.pathParts.length > 0,
+      hasFileData: !!exam.fileData,
+      hasUrls: !!exam.urls,
+    });
+
+    // Otherwise, generate a title from the available fields
+    let title = [];
+
+    // Try to get data from pathParts first (most reliable)
+    if (exam.pathParts && exam.pathParts.length > 0) {
+      // Board is pathParts[0]
+      if (exam.pathParts[0]) {
+        title.push(exam.pathParts[0]);
+      }
+
+      // Subject is pathParts[1]
+      if (exam.pathParts.length > 1 && exam.pathParts[1]) {
+        title.push(exam.pathParts[1]);
+      }
+
+      // Year is pathParts[2]
+      if (
+        exam.pathParts.length > 2 &&
+        exam.pathParts[2] &&
+        /^20\d{2}$/.test(exam.pathParts[2])
+      ) {
+        let yearStr = exam.pathParts[2];
+
+        // Add session if available (pathParts[3])
+        if (exam.pathParts.length > 3 && exam.pathParts[3]) {
+          yearStr += ` ${exam.pathParts[3]}`;
+        }
+
+        title.push(yearStr);
+      }
+
+      // Paper Code is the filename from the path
+      if (exam.paperCode && exam.paperCode !== "Unknown") {
+        // Clean up the paper code (remove file extension)
+        let paperCode = exam.paperCode;
+        if (paperCode.endsWith(".pdf")) {
+          paperCode = paperCode.slice(0, -4);
+        }
+        title.push(paperCode);
+      }
+    } else {
+      // Fallback to individual fields if pathParts not available
+
+      // Add exam board if available
+      if (exam.examBoard && exam.examBoard !== "Unknown") {
+        title.push(exam.examBoard);
+      } else if (exam.rawPath) {
+        const boardFromPath = exam.rawPath.split("/")[0];
+        if (boardFromPath === "IAL" || boardFromPath === "IGCSE") {
+          title.push(boardFromPath);
+        }
+      }
+
+      // Add subject
+      if (exam.subject && exam.subject !== "Unknown") {
+        title.push(exam.subject);
+      }
+
+      // Add year and session
+      if (exam.year) {
+        let yearStr = exam.year;
+        if (exam.session) {
+          yearStr += ` ${exam.session}`;
+        }
+        title.push(yearStr);
+      } else if (exam.session) {
+        title.push(exam.session);
+      }
+
+      // Add paper code
+      if (exam.paperCode && exam.paperCode !== "Unknown") {
+        // Clean up the paper code
+        let paperCode = exam.paperCode;
+        if (paperCode.endsWith(".pdf")) {
+          paperCode = paperCode.slice(0, -4);
+        }
+        title.push(paperCode);
+      }
+    }
+
+    // Fallback to file data if we have it
+    if (title.length === 0 && exam.fileData && exam.fileData.name) {
+      return exam.fileData.name;
+    }
+
+    // Fallback to using QP URL if we have it
+    if (title.length === 0 && exam.urls && exam.urls.qp) {
+      // Try to extract a meaningful filename from the URL
+      const url = exam.urls.qp;
+      const urlParts = url.split("/");
+      // Get the last meaningful part (usually contains file ID)
+      const lastPart = urlParts[urlParts.length - 2] || "Unknown";
+      return `Paper ${lastPart.substring(0, 8)}...`;
+    }
+
+    // Return generated title or fallback
+    return title.length > 0 ? title.join(" - ") : "Unknown Paper";
+  };
+
+  // Add a new function to extract subjects and units from mock exams
+  const extractSubjectsAndUnits = (exams) => {
+    if (!exams || exams.length === 0) return;
+
+    const subjects = new Map();
+    const igcseSubjects = new Set();
+    const ialSubjects = new Set();
+    const ialUnits = new Map();
+
+    exams.forEach((exam) => {
+      const examBoard = exam.examBoard;
+      const subject = exam.subject;
+
+      if (examBoard === "IGCSE" && subject && subject !== "Unknown") {
+        igcseSubjects.add(subject);
+      } else if (examBoard === "IAL" && subject && subject !== "Unknown") {
+        ialSubjects.add(subject);
+
+        // Extract unit information from paper code for IAL
+        if (exam.paperCode && exam.paperCode !== "Unknown") {
+          const unitMatch = exam.paperCode.match(/^(P\d+|M\d+|S\d+|C\d+)/i);
+          if (unitMatch) {
+            const unit = unitMatch[0].toUpperCase();
+            if (!ialUnits.has(subject)) {
+              ialUnits.set(subject, new Set());
+            }
+            ialUnits.get(subject).add(unit);
+          }
+        }
+      }
+    });
+
+    // Convert Sets to arrays
+    const subjectsArr = [
+      { id: "all", name: "All Subjects" },
+      ...Array.from(igcseSubjects).map((s) => ({
+        id: `IGCSE-${s}`,
+        name: `IGCSE ${s}`,
+      })),
+      ...Array.from(ialSubjects).map((s) => ({
+        id: `IAL-${s}`,
+        name: `IAL ${s}`,
+      })),
+    ];
+
+    setSubjectList(subjectsArr);
+  };
+
+  // Add a function to update unit list when subject changes
+  const updateUnitList = (subject) => {
+    if (!subject || subject === "all") {
+      setUnitList([{ id: "all", name: "All Units/Papers" }]);
+      return;
+    }
+
+    // Extract subject details
+    const [board, subjectName] = subject.split("-");
+
+    if (board === "IGCSE") {
+      // For IGCSE, units are paper types (Paper1, Paper2, etc.)
+      const papers = mockExams
+        .filter(
+          (exam) => exam.examBoard === "IGCSE" && exam.subject === subjectName
+        )
+        .map((exam) => exam.paperCode)
+        .filter((code) => code && code !== "Unknown");
+
+      // Extract unique papers
+      const uniquePapers = [...new Set(papers)];
+
+      setUnitList([
+        { id: "all", name: "All Papers" },
+        ...uniquePapers.map((p) => ({ id: p, name: p })),
+      ]);
+    } else if (board === "IAL") {
+      // For IAL, extract units like P1, P2, M1, etc.
+      const units = new Set();
+
+      mockExams
+        .filter(
+          (exam) => exam.examBoard === "IAL" && exam.subject === subjectName
+        )
+        .forEach((exam) => {
+          if (exam.paperCode && exam.paperCode !== "Unknown") {
+            const unitMatch = exam.paperCode.match(/^(P\d+|M\d+|S\d+|C\d+)/i);
+            if (unitMatch) {
+              units.add(unitMatch[0].toUpperCase());
+            }
+          }
+        });
+
+      setUnitList([
+        { id: "all", name: "All Units" },
+        ...Array.from(units).map((u) => ({ id: u, name: u })),
+      ]);
+    }
+  };
+
+  // Add a function to filter exams based on selections
+  const filterExamsBySelection = () => {
+    if (!mockExams || mockExams.length === 0) {
+      setFilteredExams([]);
+      return;
+    }
+
+    let filtered = [...mockExams];
+
+    // Filter by subject (which already includes the exam level prefix)
+    if (selectedSubject !== "all") {
+      const [level, subjectName] = selectedSubject.split("-");
+      filtered = filtered.filter(
+        (exam) => exam.examBoard === level && exam.subject === subjectName
+      );
+    }
+
+    // Filter by unit/paper
+    if (selectedUnit !== "all") {
+      filtered = filtered.filter((exam) => {
+        if (!exam.paperCode || exam.paperCode === "Unknown") return false;
+
+        // For IAL, match unit pattern (P1, M1, etc.)
+        if (exam.examBoard === "IAL") {
+          const unitPattern = new RegExp(`^${selectedUnit}`, "i");
+          return unitPattern.test(exam.paperCode);
+        }
+
+        // For IGCSE, match exact paper code
+        return exam.paperCode === selectedUnit;
+      });
+    }
+
+    // Sort by date
+    filtered.sort((a, b) => {
+      const dateA = a.completedAt
+        ? a.completedAt.toDate
+          ? a.completedAt.toDate()
+          : new Date(a.completedAt)
+        : new Date(0);
+      const dateB = b.completedAt
+        ? b.completedAt.toDate
+          ? b.completedAt.toDate()
+          : new Date(b.completedAt)
+        : new Date(0);
+      return dateA - dateB;
+    });
+
+    setFilteredExams(filtered);
+
+    // Generate performance data
+    generatePerformanceData(filtered);
+  };
+
+  // Add function to generate performance data for charts
+  const generatePerformanceData = (exams) => {
+    if (!exams || exams.length === 0) {
+      setPerformanceData({
+        labels: [],
+        scores: [],
+        times: [],
+        trend: "neutral",
+        comment: "No data available for the selected criteria.",
+      });
+      return;
+    }
+
+    // Format dates for labels
+    const labels = exams.map((exam) => {
+      const date = exam.completedAt
+        ? exam.completedAt.toDate
+          ? exam.completedAt.toDate()
+          : new Date(exam.completedAt)
+        : new Date();
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    });
+
+    // Extract scores and times
+    const scores = exams.map((exam) =>
+      exam.score !== undefined && exam.score !== null ? exam.score : 0
+    );
+    const times = exams.map((exam) => exam.durationMinutes || 0);
+
+    // Determine trend
+    const trend = determinePerformanceTrend(scores);
+
+    // Generate comment
+    const comment = generatePerformanceComment(scores, trend);
+
+    setPerformanceData({
+      labels,
+      scores,
+      times,
+      trend,
+      comment,
+    });
+  };
+
+  // Add effect to extract subjects when mock exams change
+  useEffect(() => {
+    if (mockExams.length > 0) {
+      extractSubjectsAndUnits(mockExams);
+      // Initialize with all exams
+      setFilteredExams(mockExams);
+      generatePerformanceData(mockExams);
+    }
+  }, [mockExams]);
+
+  // Add effect to update units when subject changes
+  useEffect(() => {
+    updateUnitList(selectedSubject);
+  }, [selectedSubject, mockExams]);
+
+  // Add effect to filter exams when selections change
+  useEffect(() => {
+    filterExamsBySelection();
+  }, [selectedSubject, selectedUnit]);
+
+  return (
+    <div className="p-6 bg-gray-900 text-white min-h-screen">
+      {/* Header with user info */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div className="flex items-center mb-4 md:mb-0">
+          {user?.picture && !imageError ? (
+            <img
+              src={user.picture}
+              alt={user?.name || "User"}
+              className="h-16 w-16 rounded-full mr-4 object-cover border-2 border-gray-600"
+              onError={handleImageError}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full mr-4 bg-gray-700 flex items-center justify-center border-2 border-gray-600">
+              <User size={32} className="text-gray-300" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{user?.name || "User"}</h1>
+            <p className="text-gray-400">{user?.email}</p>
+            <div className="mt-1">
+              <span className="px-2 py-1 text-xs rounded-full bg-blue-600 text-white">
+                {user?.role || "User"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-2">
+          <Link
+            to="/"
+            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center"
+          >
+            <FileText size={16} className="mr-2" />
+            Past Papers
+          </Link>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-8 border-b border-gray-700">
+        <div className="flex space-x-1 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("performance")}
+            className={`px-4 py-2 whitespace-nowrap ${
+              activeTab === "performance"
+                ? "border-b-2 border-blue-500 text-blue-400"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            <span className="flex items-center">
+              <ChartLine size={16} className="mr-1.5" />
+              Performance
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("mocks")}
+            className={`px-4 py-2 whitespace-nowrap ${
+              activeTab === "mocks"
+                ? "border-b-2 border-blue-500 text-blue-400"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Mock History
+          </button>
+          <button
+            onClick={() => setActiveTab("preferences")}
+            className={`px-4 py-2 whitespace-nowrap ${
+              activeTab === "preferences"
+                ? "border-b-2 border-blue-500 text-blue-400"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Preferences
+          </button>
+        </div>
+      </div>
+
+      {/* Dashboard content based on active tab */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Stats cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-gray-800 rounded-lg p-5 shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Total Mock Exams</p>
+                  <h3 className="text-2xl font-bold mt-1">
+                    {stats.totalMocks}
+                  </h3>
+                </div>
+                <div className="bg-blue-500/20 p-3 rounded-lg">
+                  <FileText className="text-blue-500" size={24} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-5 shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Time Spent</p>
+                  <h3 className="text-2xl font-bold mt-1">
+                    {formatDuration(stats.totalTimeSpent)}
+                  </h3>
+                </div>
+                <div className="bg-green-500/20 p-3 rounded-lg">
+                  <Clock className="text-green-500" size={24} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-5 shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Avg. Score</p>
+                  <h3 className="text-2xl font-bold mt-1">
+                    {stats.avgScore > 0
+                      ? `${Math.round(stats.avgScore)}%`
+                      : "N/A"}
+                  </h3>
+                </div>
+                <div className="bg-purple-500/20 p-3 rounded-lg">
+                  <Percent className="text-purple-500" size={24} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-5 shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">Most Attempted</p>
+                  <h3 className="text-xl font-bold mt-1 truncate max-w-[180px]">
+                    {stats.mostAttemptedSubject || "N/A"}
+                  </h3>
+                </div>
+                <div className="bg-amber-500/20 p-3 rounded-lg">
+                  <Award className="text-amber-500" size={24} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent activity */}
+          <div className="bg-gray-800 rounded-lg shadow">
+            <div className="p-5 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="font-semibold">Recent Activity</h3>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className={`p-1.5 rounded-md ${
+                  isRefreshing
+                    ? "bg-gray-700 text-gray-500"
+                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                } transition-colors`}
+                title="Refresh mock exam data"
+              >
+                <RefreshCw
+                  size={16}
+                  className={`${isRefreshing ? "animate-spin" : ""}`}
+                />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {isLoading || isRefreshing ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : mockExams.length > 0 ? (
+                <div className="space-y-4">
+                  {mockExams.slice(0, 3).map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="flex items-start border-b border-gray-700 pb-4 last:border-b-0 last:pb-0"
+                    >
+                      <div className="bg-gray-700 p-2 rounded mr-4">
+                        <Clock size={18} className="text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{formatPaperTitle(exam)}</p>
+                        <p className="text-sm text-gray-400">
+                          Duration: {formatDuration(exam.durationMinutes || 0)}
+                          {exam.examBoard && ` • ${exam.examBoard}`}
+                          {!exam.examBoard &&
+                            exam.rawPath &&
+                            ` • ${exam.rawPath.split("/")[0]}`}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatDate(exam.completedAt)}
+                          {exam.rawPath && (
+                            <span className="block text-xs text-gray-500 mt-0.5 truncate">
+                              {exam.rawPath}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {exam.score !== undefined && (
+                        <div className="bg-gray-700 px-2.5 py-1 rounded text-sm font-medium">
+                          {Math.round(exam.score)}%
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {mockExams.length > 3 && (
+                    <button
+                      className="text-blue-400 text-sm hover:text-blue-300 flex items-center"
+                      onClick={() => setActiveTab("mocks")}
+                    >
+                      View all mock exams
+                      <ArrowUpRight size={14} className="ml-1" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-gray-400">
+                  <Clock size={40} className="mx-auto mb-4 opacity-50" />
+                  <p>No mock exams taken yet</p>
+                  <p className="text-sm mt-2">
+                    Use the timer feature in past papers to track your mock
+                    exams
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Subject preferences summary */}
+          <div className="bg-gray-800 rounded-lg shadow">
+            <div className="p-5 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="font-semibold">Subject Preferences</h3>
+              <button
+                className="text-blue-400 text-sm hover:text-blue-300 flex items-center"
+                onClick={() => setActiveTab("preferences")}
+              >
+                Manage
+                <Settings size={14} className="ml-1" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {subjectPreferences.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {subjectPreferences.map((subjectId) => {
+                    const subject = availableSubjects.find(
+                      (s) => s.id === subjectId
+                    );
+                    return (
+                      <div
+                        key={subjectId}
+                        className="bg-gray-700 px-3 py-1.5 rounded-full text-sm"
+                      >
+                        {formatSubjectName(subject?.name || subjectId)}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-400">
+                  <Filter size={32} className="mx-auto mb-2 opacity-50" />
+                  <p>No subject preferences set</p>
+                  <p className="text-sm mt-1">
+                    Add subjects to customize your past papers view
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mock Exams History Tab */}
+      {activeTab === "mocks" && (
+        <div className="bg-gray-800 rounded-lg shadow">
+          <div className="p-5 border-b border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold">Mock History</h3>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className={`p-1.5 rounded-md ${
+                isRefreshing
+                  ? "bg-gray-700 text-gray-500"
+                  : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+              } transition-colors`}
+              title="Refresh mock exam data"
+            >
+              <RefreshCw
+                size={16}
+                className={`${isRefreshing ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
+
+          <div className="p-5">
+            {isLoading || isRefreshing ? (
+              <div className="flex justify-center items-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : mockExams.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-gray-400 text-sm">
+                      <th className="pb-3 pl-4">Date</th>
+                      <th className="pb-3">Paper</th>
+                      <th className="pb-3">Duration</th>
+                      <th className="pb-3">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockExams.map((exam) => (
+                      <tr key={exam.id} className="border-t border-gray-700">
+                        <td className="py-3 pl-4">
+                          {formatDate(exam.completedAt)}
+                        </td>
+                        <td className="py-3 max-w-xs">
+                          <div className="truncate font-medium">
+                            {formatPaperTitle(exam)}
+                          </div>
+                          {exam.rawPath && (
+                            <div className="text-xs text-gray-500 mt-0.5 truncate">
+                              {exam.rawPath}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          {formatDuration(exam.durationMinutes || 0)}
+                        </td>
+                        <td className="py-3">
+                          {exam.score !== undefined
+                            ? `${Math.round(exam.score)}%`
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-10 text-gray-400">
+                <Calendar size={40} className="mx-auto mb-4 opacity-50" />
+                <p>No mock exams taken yet</p>
+                <p className="text-sm mt-2">
+                  Use the timer feature in past papers to track your mock exams
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Performance Analytics Tab */}
+      {activeTab === "performance" && (
+        <div className="space-y-6">
+          {/* Filters Section */}
+          <div className="bg-gray-800 rounded-lg shadow p-5">
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <LineChart className="mr-2" size={20} />
+              Performance Analytics
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Subject Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Subject
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => {
+                      setSelectedSubject(e.target.value);
+                      setSelectedUnit("all"); // Reset unit when subject changes
+                    }}
+                    className="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {subjectList.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="absolute right-3 top-2.5 text-gray-400 pointer-events-none"
+                    size={16}
+                  />
+                </div>
+              </div>
+
+              {/* Unit/Paper Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  {selectedSubject.startsWith("IAL-") ? "Unit" : "Paper"}
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="w-full py-2 px-3 bg-gray-700 border border-gray-600 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {unitList.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="absolute right-3 top-2.5 text-gray-400 pointer-events-none"
+                    size={16}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div className="bg-gray-700 p-4 rounded-lg flex items-center">
+                <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
+                  <FileText size={20} className="text-blue-400" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">Total Exams</div>
+                  <div className="text-xl font-semibold">
+                    {filteredExams.length}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-700 p-4 rounded-lg flex items-center">
+                <div className="bg-green-500/20 p-2 rounded-lg mr-3">
+                  <Percent size={20} className="text-green-400" />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">Average Score</div>
+                  <div className="text-xl font-semibold">
+                    {performanceData.scores.length > 0
+                      ? `${Math.round(
+                          performanceData.scores.reduce((a, b) => a + b, 0) /
+                            performanceData.scores.length
+                        )}%`
+                      : "N/A"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-700 p-4 rounded-lg flex items-center">
+                <div className="bg-yellow-500/20 p-2 rounded-lg mr-3">
+                  {performanceData.trend === "increasing" && (
+                    <TrendingUp size={20} className="text-green-400" />
+                  )}
+                  {performanceData.trend === "decreasing" && (
+                    <TrendingUp
+                      size={20}
+                      className="text-red-400 transform rotate-180"
+                    />
+                  )}
+                  {performanceData.trend === "neutral" && (
+                    <Sigma size={20} className="text-yellow-400" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm text-gray-400">Trend</div>
+                  <div className="text-xl font-semibold capitalize">
+                    {performanceData.trend === "increasing" && (
+                      <span className="text-green-400">Improving</span>
+                    )}
+                    {performanceData.trend === "decreasing" && (
+                      <span className="text-red-400">Declining</span>
+                    )}
+                    {performanceData.trend === "neutral" && (
+                      <span className="text-yellow-400">Stable</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Graph */}
+          <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div className="p-5 border-b border-gray-700">
+              <h3 className="font-semibold">Score Progress</h3>
+            </div>
+
+            <div className="p-5">
+              {performanceData.scores.length > 0 ? (
+                <div>
+                  {/* Chart visualization */}
+                  <div className="h-64 flex items-end space-x-1 relative">
+                    {/* Y-axis labels */}
+                    <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between text-xs text-gray-400 pointer-events-none px-1">
+                      <span>100%</span>
+                      <span>75%</span>
+                      <span>50%</span>
+                      <span>25%</span>
+                      <span>0%</span>
+                    </div>
+
+                    {/* Bar chart with some padding for axis */}
+                    <div className="flex-1 flex items-end space-x-1 h-full pl-10">
+                      {performanceData.scores.map((score, index) => (
+                        <div
+                          key={index}
+                          className="flex-1 flex flex-col items-center justify-end h-full group"
+                        >
+                          <div className="w-full flex flex-col items-center justify-end h-full">
+                            {/* Tooltip on hover */}
+                            <div className="opacity-0 group-hover:opacity-100 absolute bg-gray-900 text-white text-xs rounded p-1 -mt-20 pointer-events-none">
+                              {performanceData.labels[index]}: {score}%
+                            </div>
+                            {/* Actual bar */}
+                            <div
+                              className="w-full bg-blue-500 rounded-t-sm"
+                              style={{ height: `${Math.max(score, 3)}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs mt-1 text-gray-400 truncate w-full text-center">
+                            {performanceData.labels[index] || ""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Performance Analysis */}
+                  <div className="mt-8 p-4 border border-gray-700 rounded-lg bg-gray-750">
+                    <h4 className="text-md font-semibold mb-2 flex items-center">
+                      <Info size={16} className="mr-2 text-blue-400" />
+                      Performance Analysis
+                    </h4>
+                    <p className="text-gray-300">{performanceData.comment}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-16 text-gray-400">
+                  <BarChart size={48} className="mx-auto mb-4 opacity-30" />
+                  <p>No data available for the selected criteria</p>
+                  <p className="text-sm mt-2">
+                    Take mock exams to see your performance analytics
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Time Spent Graph */}
+          {performanceData.times.length > 0 && (
+            <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="p-5 border-b border-gray-700">
+                <h3 className="font-semibold">Time Spent</h3>
+              </div>
+
+              <div className="p-5">
+                <div className="h-48 flex items-end space-x-1 relative">
+                  {/* Y-axis labels */}
+                  <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between text-xs text-gray-400 pointer-events-none px-1">
+                    <span>{Math.max(...performanceData.times)} min</span>
+                    <span>
+                      {Math.round(Math.max(...performanceData.times) * 0.75)}{" "}
+                      min
+                    </span>
+                    <span>
+                      {Math.round(Math.max(...performanceData.times) * 0.5)} min
+                    </span>
+                    <span>
+                      {Math.round(Math.max(...performanceData.times) * 0.25)}{" "}
+                      min
+                    </span>
+                    <span>0 min</span>
+                  </div>
+
+                  {/* Bar chart with padding for axis */}
+                  <div className="flex-1 flex items-end space-x-1 h-full pl-10">
+                    {performanceData.times.map((time, index) => {
+                      const maxTime = Math.max(...performanceData.times);
+                      const height = maxTime > 0 ? (time / maxTime) * 100 : 0;
+
+                      return (
+                        <div
+                          key={index}
+                          className="flex-1 flex flex-col items-center justify-end h-full group"
+                        >
+                          <div className="w-full flex flex-col items-center justify-end h-full">
+                            {/* Tooltip on hover */}
+                            <div className="opacity-0 group-hover:opacity-100 absolute bg-gray-900 text-white text-xs rounded p-1 -mt-20 pointer-events-none">
+                              {performanceData.labels[index]}: {time} min
+                            </div>
+                            {/* Actual bar */}
+                            <div
+                              className="w-full bg-purple-500 rounded-t-sm"
+                              style={{ height: `${Math.max(height, 3)}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs mt-1 text-gray-400 truncate w-full text-center">
+                            {performanceData.labels[index] || ""}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Preferences Tab */}
+      {activeTab === "preferences" && (
+        <div className="space-y-6">
+          <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div className="p-5 border-b border-gray-700 flex justify-between items-center">
+              <h3 className="text-xl font-semibold">Subject Preferences</h3>
+            </div>
+
+            <div className="p-5">
+              <p className="text-gray-400 mb-4">
+                Select subjects you're interested in to quickly filter past
+                papers by subject.
+              </p>
+
+              {/* Check All option */}
+              {availableSubjects.length > 0 && (
+                <div className="mb-4 pb-3 border-b border-gray-700">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="check-all-subjects"
+                      checked={areAllSubjectsSelected()}
+                      onChange={toggleAllSubjects}
+                      className="w-4 h-4 rounded border-gray-700 bg-gray-700 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                    />
+                    <label
+                      htmlFor="check-all-subjects"
+                      className="ml-2 text-sm font-medium text-blue-400 cursor-pointer select-none"
+                    >
+                      {areAllSubjectsSelected()
+                        ? "Uncheck All Subjects"
+                        : "Check All Subjects"}
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Display all available subjects as checkboxes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availableSubjects.map((subject) => (
+                  <div key={subject.id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id={`subject-${subject.id}`}
+                      checked={isSubjectSelected(subject.id)}
+                      onChange={() => toggleSubject(subject.id)}
+                      className="w-4 h-4 rounded border-gray-700 bg-gray-700 text-blue-600 focus:ring-blue-600 focus:ring-offset-gray-800"
+                    />
+                    <label
+                      htmlFor={`subject-${subject.id}`}
+                      className="ml-2 text-sm font-medium text-gray-300 cursor-pointer select-none"
+                    >
+                      {formatSubjectName(subject.name || subject.id)}
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              {availableSubjects.length === 0 && (
+                <div className="text-center py-6 text-gray-400">
+                  <ClipboardList
+                    size={32}
+                    className="mx-auto mb-2 opacity-50"
+                  />
+                  <p>No subjects available</p>
+                </div>
+              )}
+
+              <div className="mt-6 bg-blue-900/20 p-4 rounded-md">
+                <h4 className="text-sm font-medium text-blue-400 mb-2">
+                  Current Filtering
+                </h4>
+                <p className="text-xs text-gray-300">
+                  {subjectPreferences.length > 0
+                    ? "These subjects will be available as filters in the Past Papers Navigator."
+                    : "No subjects selected. All subjects will be shown in the Past Papers Navigator."}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
