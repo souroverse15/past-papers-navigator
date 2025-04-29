@@ -1,12 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all read/write for development - REMOVE THIS IN PRODUCTION!
-    match /{document=**} {
-      allow read, write: if true;
-    }
-    
-    /* PRODUCTION RULES - UNCOMMENT THESE AFTER DEBUGGING
     // Check if the user is the designated admin
     function isAdmin() {
       return request.auth != null && request.auth.token.email == 'souroveahmed15@gmail.com';
@@ -237,6 +231,5 @@ service cloud.firestore {
       allow read: if request.auth != null && !isUserBanned(request.auth.token.email);
       allow write: if isAdmin();
     }
-    */
   }
 }
