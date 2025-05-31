@@ -208,6 +208,11 @@ export default function MobileFileNavigator({
                 : "hover:bg-gray-800/30 active:bg-gray-700/40"
             }`}
             onClick={() => onFileSelect(value, fullPath)}
+            onTouchStart={() => {}}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              onFileSelect(value, fullPath);
+            }}
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <File
@@ -220,7 +225,7 @@ export default function MobileFileNavigator({
                     isActive ? "text-blue-100" : "text-gray-200"
                   }`}
                 >
-                  {key}
+                  {value.name || key}
                 </span>
                 <div className="flex items-center space-x-2 mt-1">
                   {hasAllPapers && (
@@ -264,6 +269,11 @@ export default function MobileFileNavigator({
                 : "hover:bg-gray-800/30 active:bg-gray-700/40"
             }`}
             onClick={() => toggleFolder(fullPath)}
+            onTouchStart={() => {}}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              toggleFolder(fullPath);
+            }}
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               {isExpanded ? (
@@ -337,6 +347,13 @@ export default function MobileFileNavigator({
         onClick={() =>
           result.type === "file" && onFileSelect(result.data, result.path)
         }
+        onTouchStart={() => {}}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          if (result.type === "file") {
+            onFileSelect(result.data, result.path);
+          }
+        }}
       >
         <div className="flex items-center space-x-3">
           {result.type === "file" ? (
