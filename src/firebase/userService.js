@@ -40,7 +40,7 @@ export const saveUserOnLogin = async (user) => {
       userData.role = "Admin";
       console.log("Setting admin role for:", user.email);
     } else {
-      userData.role = "User";
+      userData.role = "User"; // Default role
     }
 
     if (!userSnap.exists()) {
@@ -219,35 +219,6 @@ export const removeUser = async (email) => {
     return true;
   } catch (error) {
     console.error("Error removing user:", error);
-    return false;
-  }
-};
-
-// Update user role to Teacher
-export const makeUserTeacher = async (email) => {
-  if (!email) return false;
-
-  try {
-    const userRef = doc(db, "users", email);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      console.error("User not found");
-      return false;
-    }
-
-    const userData = userSnap.data();
-
-    // Update the user's role to Teacher
-    await updateDoc(userRef, {
-      role: "Teacher",
-      updatedAt: serverTimestamp(),
-    });
-
-    console.log(`Successfully updated user ${email} to Teacher role`);
-    return true;
-  } catch (error) {
-    console.error("Error updating user to Teacher role:", error);
     return false;
   }
 };

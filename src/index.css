@@ -455,6 +455,7 @@ iframe {
   min-width: 100%;
   display: block;
   border: none;
+  background-color: transparent;
 }
 
 /* Side-by-side PDF viewer styles */
@@ -511,11 +512,6 @@ iframe {
   -moz-user-select: none;
   -ms-user-select: none;
   cursor: col-resize;
-}
-
-/* Make sure iframe content is properly sized */
-iframe {
-  background-color: white;
 }
 
 /* Mobile-specific styles */
@@ -601,7 +597,7 @@ iframe {
 }
 
 .stacked-panel iframe {
-  background-color: white;
+  background-color: transparent;
   border: none;
   width: 100%;
   height: calc(100% - 28px);

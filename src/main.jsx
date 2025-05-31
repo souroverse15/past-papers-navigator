@@ -1,12 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { inject } from "@vercel/analytics";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "./contexts/AuthContext";
-import App from "./App";
+import App from "./App.jsx";
 import "./index.css";
+import "./styles/mobile.css";
+import { inject } from "@vercel/analytics";
 
-// Initialize Vercel Speed Insights
+// Initialize Vercel analytics
 inject();
 
 // Get Google Client ID from environment variables

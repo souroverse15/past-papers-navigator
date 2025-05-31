@@ -1,0 +1,49 @@
+{
+  "IGCSE": {
+    "Biology": {
+      "2023": {
+        "May/June": {
+          "Paper 1": {
+            "qp": "https://example.com/igcse/biology/2023/mj/paper1-qp.pdf",
+            "ms": "https://example.com/igcse/biology/2023/mj/paper1-ms.pdf",
+            "sp": "https://example.com/igcse/biology/2023/mj/paper1-sp.pdf"
+          },
+          "Paper 2": {
+            "qp": "https://example.com/igcse/biology/2023/mj/paper2-qp.pdf",
+            "ms": "https://example.com/igcse/biology/2023/mj/paper2-ms.pdf"
+          }
+        },
+        "October/November": {
+          "Paper 1": {
+            "qp": "https://example.com/igcse/biology/2023/on/paper1-qp.pdf",
+            "ms": "https://example.com/igcse/biology/2023/on/paper1-ms.pdf"
+          }
+        }
+      }
+    },
+    "English Language B": {
+      "2023": {
+        "May/June": {
+          "Paper 1": {
+            "qp": "https://example.com/igcse/english-b/2023/mj/paper1-qp.pdf",
+            "ms": "https://example.com/igcse/english-b/2023/mj/paper1-ms.pdf",
+            "in": "https://example.com/igcse/english-b/2023/mj/paper1-in.pdf"
+          }
+        }
+      }
+    }
+  },
+  "A Level": {
+    "Mathematics": {
+      "2023": {
+        "May/June": {
+          "Paper 1": {
+            "qp": "https://example.com/alevel/math/2023/mj/paper1-qp.pdf",
+            "ms": "https://example.com/alevel/math/2023/mj/paper1-ms.pdf",
+            "sp": "https://example.com/alevel/math/2023/mj/paper1-sp.pdf"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   FileText,
   BookOpen,
@@ -256,6 +256,14 @@ const extractExamBoard = (activePath = "") => {
   return "Unknown";
 };
 
+// Add this function near the other extract functions at the top
+const isEnglishLanguageB = (activePath = "") => {
+  if (!activePath) return false;
+  const pathParts = activePath.split("/");
+  // Check if it's English Language B by looking at the subject part of the path
+  return pathParts.some((part) => part.toLowerCase() === "english language b");
+};
+
 export default function PaperViewer({
   selectedFile,
   activeTab,
@@ -274,6 +282,7 @@ export default function PaperViewer({
   const [sideBySideView, setSideBySideView] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(50); // 50% default width for desktop
   const [topPanelHeight, setTopPanelHeight] = useState(50); // 50% default height for mobile
+  const [selectedPaperType, setSelectedPaperType] = useState(null);
   const containerRef = useRef(null);
   const isDraggingRef = useRef(false);
   const stackedContainerRef = useRef(null);
@@ -675,6 +684,81 @@ export default function PaperViewer({
     }
   };
 
+  // Add this function to handle paper type clicks
+  const handlePaperTypeClick = (paperLink) => {
+    if (!paperLink) {
+      alert("This paper type is not available.");
+      return;
+    }
+    const isEnglishB = isEnglishLanguageB(activePath);
+    setActiveTab(isEnglishB ? "in" : "sp");
+    setSideBySideView(false);
+    setSelectedPaperType(paperLink);
+  };
+
+  // Add this section where the buttons are rendered
+  const renderSolvedPaperOrBookletButton = () => {
+    if (!selectedFile) return null;
+
+    const isEnglishB = isEnglishLanguageB(activePath);
+    const buttonLink = isEnglishB ? selectedFile?.in : selectedFile?.sp;
+    const buttonText = isEnglishB ? "Booklet" : "Solved Paper";
+
+    return (
+      <button
+        onClick={() => {
+          if (!buttonLink) {
+            alert(
+              `This paper does not have a ${buttonText.toLowerCase()} available.`
+            );
+            return;
+          }
+          setActiveTab(isEnglishB ? "in" : "sp");
+          setSideBySideView(false);
+        }}
+        className={`${
+          effectiveIsMobile ? "px-3 py-1.5 text-sm" : "px-3 py-1.5"
+        } rounded-md transition-all ${
+          !buttonLink
+            ? "bg-gray-800/50 backdrop-blur-sm text-gray-500 opacity-50 cursor-not-allowed border border-gray-700"
+            : activeTab === (isEnglishB ? "in" : "sp")
+            ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
+            : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700/80 border border-gray-700 hover:border-gray-600"
+        }`}
+        disabled={!buttonLink}
+      >
+        <div className="flex items-center space-x-1">
+          {isEnglishB ? (
+            <BookOpen
+              size={effectiveIsMobile ? 14 : 16}
+              className={
+                !buttonLink
+                  ? "text-gray-500"
+                  : activeTab === "in"
+                  ? "text-white"
+                  : "text-blue-400"
+              }
+            />
+          ) : (
+            <CheckCircle2
+              size={effectiveIsMobile ? 14 : 16}
+              className={
+                !buttonLink
+                  ? "text-gray-500"
+                  : activeTab === "sp"
+                  ? "text-white"
+                  : "text-yellow-400"
+              }
+            />
+          )}
+          <span>
+            {effectiveIsMobile ? (isEnglishB ? "IN" : "SP") : buttonText}
+          </span>
+        </div>
+      </button>
+    );
+  };
+
   if (!selectedFile) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0D1321] text-white p-4">
@@ -723,7 +807,7 @@ export default function PaperViewer({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0D1321] text-white">
+    <div className="flex-1 flex flex-col bg-[#0D1321] text-white h-full">
       {/* Navigation bar */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/40 backdrop-blur-sm">
         <div className="flex items-center space-x-2">
@@ -798,41 +882,8 @@ export default function PaperViewer({
             </div>
           </button>
 
-          <button
-            onClick={() => {
-              if (!selectedFile.sp) {
-                alert("This paper does not have a solved paper available.");
-                return;
-              }
-              setActiveTab("sp");
-              // Enable side-by-side view on desktop, stacked view on mobile
-              setSideBySideView(true);
-            }}
-            className={`${
-              effectiveIsMobile ? "px-3 py-1.5 text-sm" : "px-3 py-1.5"
-            } rounded-md transition-all ${
-              !selectedFile.sp
-                ? "bg-gray-800/50 backdrop-blur-sm text-gray-500 opacity-50 cursor-not-allowed border border-gray-700"
-                : activeTab === "sp"
-                ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
-                : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700/80 border border-gray-700 hover:border-gray-600"
-            }`}
-            disabled={!selectedFile.sp}
-          >
-            <div className="flex items-center space-x-1">
-              <CheckCircle2
-                size={effectiveIsMobile ? 14 : 16}
-                className={
-                  !selectedFile.sp
-                    ? "text-gray-500"
-                    : activeTab === "sp"
-                    ? "text-white"
-                    : "text-yellow-400"
-                }
-              />
-              <span>{effectiveIsMobile ? "SP" : "Solved Paper"}</span>
-            </div>
-          </button>
+          {/* Replace the old Solved Paper button with our new dynamic button */}
+          {renderSolvedPaperOrBookletButton()}
 
           {/* Add to Goals button - only show if user is logged in, paper is not in goals, and not completed as mock */}
           {user && !isPaperInGoals && !isPaperCompletedAsMock && (
@@ -941,6 +992,106 @@ export default function PaperViewer({
         </div>
       </div>
 
+      {/* PDF Viewer Container */}
+      <div className="flex-1 relative overflow-hidden bg-[#0D1321]">
+        {sideBySideView ? (
+          // Side by side view
+          <div className="flex h-full">
+            {/* Left panel (Question Paper) */}
+            <div
+              className={`${
+                effectiveIsMobile ? "w-full" : `w-[${leftPanelWidth}%]`
+              } h-full`}
+            >
+              {selectedFile?.qp && (
+                <iframe
+                  src={selectedFile.qp}
+                  className="w-full h-full border-0"
+                  title="Question Paper"
+                  style={{ backgroundColor: "white" }}
+                />
+              )}
+            </div>
+
+            {/* Divider */}
+            {!effectiveIsMobile && (
+              <div
+                className="w-1 bg-gray-700 cursor-col-resize hover:bg-blue-500 transition-colors"
+                onMouseDown={handleDividerMouseDown}
+              />
+            )}
+
+            {/* Right panel */}
+            <div
+              className={`${
+                effectiveIsMobile ? "w-full" : `w-[${100 - leftPanelWidth}%]`
+              } h-full`}
+            >
+              {activeTab === "ms" && selectedFile?.ms && (
+                <iframe
+                  src={selectedFile.ms}
+                  className="w-full h-full border-0"
+                  title="Mark Scheme"
+                  style={{ backgroundColor: "white" }}
+                />
+              )}
+              {activeTab === "sp" && selectedFile?.sp && (
+                <iframe
+                  src={selectedFile.sp}
+                  className="w-full h-full border-0"
+                  title="Solved Paper"
+                  style={{ backgroundColor: "white" }}
+                />
+              )}
+              {activeTab === "in" && selectedFile?.in && (
+                <iframe
+                  src={selectedFile.in}
+                  className="w-full h-full border-0"
+                  title="Booklet"
+                  style={{ backgroundColor: "white" }}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          // Single view
+          <div className="h-full">
+            {activeTab === "qp" && selectedFile?.qp && (
+              <iframe
+                src={selectedFile.qp}
+                className="w-full h-full border-0"
+                title="Question Paper"
+                style={{ backgroundColor: "white" }}
+              />
+            )}
+            {activeTab === "ms" && selectedFile?.ms && (
+              <iframe
+                src={selectedFile.ms}
+                className="w-full h-full border-0"
+                title="Mark Scheme"
+                style={{ backgroundColor: "white" }}
+              />
+            )}
+            {activeTab === "sp" && selectedFile?.sp && (
+              <iframe
+                src={selectedFile.sp}
+                className="w-full h-full border-0"
+                title="Solved Paper"
+                style={{ backgroundColor: "white" }}
+              />
+            )}
+            {activeTab === "in" && selectedFile?.in && (
+              <iframe
+                src={selectedFile.in}
+                className="w-full h-full border-0"
+                title="Booklet"
+                style={{ backgroundColor: "white" }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Score Modal */}
       {showScoreModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/80 p-4">
@@ -1019,73 +1170,6 @@ export default function PaperViewer({
           </div>
         </div>
       )}
-
-      {/* Content area */}
-      <div
-        ref={containerRef}
-        className="flex-1 flex flex-col md:flex-row relative overflow-hidden"
-      >
-        {/* Left panel (Question Paper) */}
-        <div
-          className={`${
-            sideBySideView ? "md:w-1/2" : "w-full"
-          } h-full overflow-auto`}
-          style={{
-            width: sideBySideView ? `${leftPanelWidth}%` : "100%",
-          }}
-        >
-          {selectedFile.qp && (
-            <iframe
-              src={selectedFile.qp}
-              className="w-full h-full border-0"
-              title="Question Paper"
-            />
-          )}
-        </div>
-
-        {/* Divider for desktop */}
-        {sideBySideView && !effectiveIsMobile && (
-          <div
-            className="w-1 bg-gray-700 cursor-col-resize hover:bg-blue-500 transition-colors"
-            onMouseDown={handleDividerMouseDown}
-          />
-        )}
-
-        {/* Right panel (Mark Scheme or Solved Paper) */}
-        {sideBySideView && (
-          <div
-            className={`${effectiveIsMobile ? "h-1/2" : "w-1/2"} overflow-auto`}
-            style={{
-              height: effectiveIsMobile ? `${topPanelHeight}%` : "100%",
-              width: effectiveIsMobile ? "100%" : `${100 - leftPanelWidth}%`,
-            }}
-          >
-            {activeTab === "ms" && selectedFile.ms && (
-              <iframe
-                src={selectedFile.ms}
-                className="w-full h-full border-0"
-                title="Mark Scheme"
-              />
-            )}
-            {activeTab === "sp" && selectedFile.sp && (
-              <iframe
-                src={selectedFile.sp}
-                className="w-full h-full border-0"
-                title="Solved Paper"
-              />
-            )}
-          </div>
-        )}
-
-        {/* Divider for mobile */}
-        {sideBySideView && effectiveIsMobile && (
-          <div
-            className="h-1 bg-gray-700 cursor-row-resize hover:bg-blue-500 transition-colors"
-            onMouseDown={handleStackedDividerMouseDown}
-            onTouchStart={handleStackedDividerMouseDown}
-          />
-        )}
-      </div>
     </div>
   );
 }

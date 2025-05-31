@@ -1,235 +1,106 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{database}/documents {
-    // Check if the user is the designated admin
-    function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'souroveahmed15@gmail.com';
-    }
+  database: {
+    name: '(default)';
     
-    // Check if user has Teacher role
-    function isTeacher() {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.token.email)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'Teacher';
-    }
-    
-    // Check if user has Teacher role or secondary role
-    function hasTeacherRole() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.token.email)).data;
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.token.email)) && 
-             (userData.role == 'Teacher' || 
-              (userData.secondaryRoles != null && userData.secondaryRoles.hasAny(['Teacher'])));
-    }
-    
-    // Check if the user is banned
-    function isUserBanned(email) {
-      return exists(/databases/$(database)/documents/users/$(email)) && 
-             (get(/databases/$(database)/documents/users/$(email)).data.status == 'banned' ||
-              get(/databases/$(database)/documents/users/$(email)).data.isBanned == true);
-    }
-    
-    // Check if user is teacher of classroom
-    function isTeacherOfClass(classroomId) {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/classrooms/$(classroomId)) &&
-             get(/databases/$(database)/documents/classrooms/$(classroomId)).data.teacherId == request.auth.token.sub;
-    }
-    
-    // Check if user is student in classroom
-    function isStudentInClass(classroomId) {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/classrooms/$(classroomId)) &&
-             get(/databases/$(database)/documents/classrooms/$(classroomId)).data.studentIds.hasAny([request.auth.token.sub]);
-    }
-    
-    // Allow authenticated users to read and write to their own user document
-    match /users/{email} {
-      // Anyone authenticated can read user data, admin can read all, banned users can't read anything
-      allow read: if (request.auth != null && !isUserBanned(request.auth.token.email) && 
-                     (request.auth.token.email == email || isAdmin()));
-      
-      // Only the user can update their own document (excluding role, status, isBanned)
-      allow create, update: if request.auth != null && 
-                   request.auth.token.email == email &&
-                   !isUserBanned(request.auth.token.email) &&
-                   (!request.resource.data.diff(resource.data).affectedKeys()
-                     .hasAny(['role', 'status', 'isBanned', 'bannedAt', 'unbannedAt']));
-      
-      // Only admin can update roles, ban status, or delete user documents
-      allow update, delete: if isAdmin();
-    }
-    
-    // Allow admin to list all users for the admin dashboard
-    match /users/{document=**} {
-      allow read: if isAdmin();
-    }
-    
-    // Classroom rules
-    match /classrooms/{classroomId} {
-      // Anyone can read classrooms they're enrolled in or teaching
-      allow read: if request.auth != null && 
-                     !isUserBanned(request.auth.token.email) && 
-                     (isTeacherOfClass(classroomId) || isStudentInClass(classroomId) || isAdmin());
-      
-      // Only teachers can create classrooms
-      allow create: if request.auth != null && 
-                        !isUserBanned(request.auth.token.email) &&
-                        hasTeacherRole() &&
-                        request.resource.data.teacherId == request.auth.token.sub;
-      
-      // Only the teacher of a classroom can update or delete it
-      allow update, delete: if request.auth != null && 
-                               !isUserBanned(request.auth.token.email) && 
-                               (isTeacherOfClass(classroomId) || isAdmin());
-      
-      // Classroom announcements
-      match /announcements/{announcementId} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-        
-        allow create, update, delete: if request.auth != null && 
-                                         !isUserBanned(request.auth.token.email) && 
-                                         (isTeacherOfClass(classroomId) || isAdmin());
+    match /documents {
+      // Helper functions
+      function isAuthenticated() {
+        return request.auth != null;
       }
       
-      // Classroom assignments
-      match /assignments/{assignmentId} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-        
-        allow create, update, delete: if request.auth != null && 
-                                         !isUserBanned(request.auth.token.email) && 
-                                         (isTeacherOfClass(classroomId) || isAdmin());
-        
-        // Assignment submissions
-        match /submissions/{studentId} {
-          allow read: if request.auth != null && 
-                         !isUserBanned(request.auth.token.email) && 
-                         (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId);
-          
-          allow create, update: if request.auth != null && 
-                                  !isUserBanned(request.auth.token.email) && 
-                                  request.auth.token.sub == studentId;
-          
-          allow update, delete: if request.auth != null && 
-                                  !isUserBanned(request.auth.token.email) && 
-                                  (isTeacherOfClass(classroomId) || isAdmin());
-        }
+      function isAdmin() {
+        return request.auth != null && 
+               exists(/databases/$(database)/documents/users/$(request.auth.token.email)) &&
+               get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'Admin';
       }
       
-      // Classroom attendance
-      match /attendance/{date} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-        
-        allow create, update, delete: if request.auth != null && 
-                                         !isUserBanned(request.auth.token.email) && 
-                                         (isTeacherOfClass(classroomId) || isAdmin());
+      function isUserBanned(email) {
+        return exists(/databases/$(database)/documents/users/$(email)) &&
+               get(/databases/$(database)/documents/users/$(email)).data.isBanned == true;
       }
       
-      // Classroom modules
-      match /modules/{moduleId} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-        
-        allow create, update, delete: if request.auth != null && 
-                                         !isUserBanned(request.auth.token.email) && 
-                                         (isTeacherOfClass(classroomId) || isAdmin());
-        
-        // Module progress tracking
-        match /progress/{studentId} {
-          allow read: if request.auth != null && 
-                         !isUserBanned(request.auth.token.email) && 
-                         (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId);
-          
-          allow create, update: if request.auth != null && 
-                                  !isUserBanned(request.auth.token.email) && 
-                                  (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId);
-        }
-        
-        // Module tests
-        match /tests/{testId} {
-          allow read: if request.auth != null && 
-                         !isUserBanned(request.auth.token.email) && 
-                         (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-          
-          allow create, update, delete: if request.auth != null && 
-                                           !isUserBanned(request.auth.token.email) && 
-                                           (isTeacherOfClass(classroomId) || isAdmin());
-          
-          // Test submissions
-          match /submissions/{studentId} {
-            allow read: if request.auth != null && 
-                           !isUserBanned(request.auth.token.email) && 
-                           (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId);
-            
-            allow create, update: if request.auth != null && 
-                                    !isUserBanned(request.auth.token.email) && 
-                                    request.auth.token.sub == studentId;
-            
-            allow update: if request.auth != null && 
-                             !isUserBanned(request.auth.token.email) && 
-                             isTeacherOfClass(classroomId) && 
-                             (request.resource.data.diff(resource.data).affectedKeys()
-                              .hasAny(['grade', 'feedback', 'gradedBy', 'gradedAt']));
-          }
-        }
+      function isOwner(email) {
+        return request.auth != null && request.auth.token.email == email;
       }
       
-      // Classroom payments
-      match /payments/{studentId} {
-        allow read: if request.auth != null && 
+      // User documents - core user management
+      match /users/{email} {
+        // Users can read their own data, admins can read all
+        allow read: if isAuthenticated() && 
                        !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId || isAdmin());
+                       (isOwner(email) || isAdmin());
         
-        allow create, update, delete: if request.auth != null && 
-                                         !isUserBanned(request.auth.token.email) && 
-                                         (isTeacherOfClass(classroomId) || isAdmin());
+        // Users can create/update their own document (excluding admin fields)
+        allow create, update: if isAuthenticated() && 
+                                 isOwner(email) &&
+                                 !isUserBanned(request.auth.token.email) &&
+                                 (!request.resource.data.diff(resource.data).affectedKeys()
+                                   .hasAny(['role', 'isBanned', 'bannedAt', 'unbannedAt']));
+        
+        // Only admins can update roles, ban status, or delete users
+        allow update, delete: if isAdmin();
       }
       
-      // Student-specific data in classroom
-      match /students/{studentId} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || request.auth.token.sub == studentId);
+      // Mock exams - user's practice exam data
+      match /mockExams/{examId} {
+        // Users can read their own mock exams, admins can read all
+        allow read: if isAuthenticated() && 
+                       !isUserBanned(request.auth.token.email) &&
+                       (resource.data.userEmail == request.auth.token.email || isAdmin());
         
-        allow create, update: if request.auth != null && 
-                                !isUserBanned(request.auth.token.email) && 
-                                (isTeacherOfClass(classroomId) || isAdmin());
+        // Users can create mock exams for themselves
+        allow create: if isAuthenticated() && 
+                         !isUserBanned(request.auth.token.email) &&
+                         request.resource.data.userEmail == request.auth.token.email;
+        
+        // Users can update their own mock exams
+        allow update: if isAuthenticated() && 
+                         !isUserBanned(request.auth.token.email) &&
+                         resource.data.userEmail == request.auth.token.email;
+        
+        // Only admins can delete mock exams
+        allow delete: if isAdmin();
       }
       
-      // Classroom settings (including restrictions)
+      // User goals - personal study goals
+      match /userGoals/{goalId} {
+        // Users can read their own goals, admins can read all
+        allow read: if isAuthenticated() && 
+                       !isUserBanned(request.auth.token.email) &&
+                       (resource.data.userEmail == request.auth.token.email || isAdmin());
+        
+        // Users can create goals for themselves
+        allow create: if isAuthenticated() && 
+                         !isUserBanned(request.auth.token.email) &&
+                         request.resource.data.userEmail == request.auth.token.email;
+        
+        // Users can update their own goals
+        allow update: if isAuthenticated() && 
+                         !isUserBanned(request.auth.token.email) &&
+                         resource.data.userEmail == request.auth.token.email;
+        
+        // Users can delete their own goals
+        allow delete: if isAuthenticated() && 
+                         !isUserBanned(request.auth.token.email) &&
+                         resource.data.userEmail == request.auth.token.email;
+      }
+      
+      // Admin-only collections
+      match /adminData/{document=**} {
+        allow read, write: if isAdmin();
+      }
+      
+      // System settings - admin only
       match /settings/{document=**} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
-        
-        allow write: if request.auth != null && 
-                        !isUserBanned(request.auth.token.email) && 
-                        (isTeacherOfClass(classroomId) || isAdmin());
+        allow read: if isAuthenticated() && !isUserBanned(request.auth.token.email);
+        allow write: if isAdmin();
       }
       
-      // File access tracking
-      match /fileAccess/{document=**} {
-        allow read: if request.auth != null && 
-                       !isUserBanned(request.auth.token.email) && 
-                       isTeacherOfClass(classroomId);
-        
-        allow create: if request.auth != null && 
-                         !isUserBanned(request.auth.token.email) && 
-                         (isTeacherOfClass(classroomId) || isStudentInClass(classroomId));
+      // Default rule - deny all other access
+      match /{document=**} {
+        allow read, write: if false;
       }
-    }
-    
-    // Default: allow authenticated non-banned users to read, but only admin can write
-    match /{document=**} {
-      allow read: if request.auth != null && !isUserBanned(request.auth.token.email);
-      allow write: if isAdmin();
     }
   }
 }

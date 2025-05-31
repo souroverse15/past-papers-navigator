@@ -5,7 +5,6 @@ import {
   Menu,
   FileText,
   BarChart2,
-  BookOpen,
   Settings,
   LogIn,
   LogOut,
@@ -13,16 +12,7 @@ import {
   ChevronRight,
   ChevronLeft,
   User,
-  PenTool,
-  Brain,
   ShieldCheck,
-  Zap,
-  GraduationCap,
-  Flame,
-  Users,
-  Files,
-  FileEdit,
-  AlertTriangle,
 } from "lucide-react";
 
 // Define sidebar sections for easy addition of new items
@@ -51,29 +41,6 @@ const SIDEBAR_SECTIONS = {
       path: "/admin",
       requiresAuth: true,
       requiredRole: "Admin",
-    },
-    {
-      id: "notes",
-      icon: <BookOpen size={20} />,
-      text: "Notes",
-      path: "/notes",
-      requiresAuth: true,
-    },
-    {
-      id: "topical",
-      icon: <PenTool size={20} />,
-      text: "Topical Questions",
-      path: "/topical",
-      comingSoon: true,
-      requiresAuth: true,
-    },
-    {
-      id: "ai-grader",
-      icon: <Brain size={20} />,
-      text: "AI Mock Grader",
-      path: "/ai-grader",
-      comingSoon: true,
-      requiresAuth: true,
     },
   ],
   ACCOUNT: [
@@ -107,7 +74,7 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
   const { user, isAuthenticated, handleLogout, hasRole } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(true);
-  const [filePanelOpen, setFilePanelOpen] = useState(true); // Changed to true as default
+  const [filePanelOpen, setFilePanelOpen] = useState(true);
   const [activePath, setActivePath] = useState("/");
 
   // Handle keyboard shortcut for toggling sidebar
@@ -115,7 +82,7 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
     const handleKeyDown = (e) => {
       // Ctrl+B (or Cmd+B on Mac) to toggle sidebar
       if ((e.ctrlKey || e.metaKey) && e.key === "b") {
-        e.preventDefault(); // Prevent default browser behavior
+        e.preventDefault();
         setCollapsed((prev) => !prev);
       }
     };
@@ -125,11 +92,6 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
   }, []);
 
   const handleSelect = (item) => {
-    if (item.comingSoon) {
-      // Don't do anything for "coming soon" items
-      return;
-    }
-
     if (item.action === "logout") {
       handleLogout();
       navigate("/");
@@ -153,9 +115,6 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
   // Filter menu items based on authentication state and user role
   const filterMenuItems = (items) => {
     return items.filter((item) => {
-      // Hide dev-only items in production
-      if (item.devOnly && import.meta.env.PROD) return false;
-
       // Hide items that require auth if not authenticated
       if (item.requiresAuth && !isAuthenticated()) return false;
 
@@ -188,7 +147,7 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
         ) : (
           <div className="flex items-center gap-3">
             <FileText size={22} className="text-blue-500" />
-            <h1 className="text-xl font-bold">SouroVerse</h1>
+            <h1 className="text-xl font-bold">Past Papers Navigator</h1>
           </div>
         )}
       </div>
@@ -205,32 +164,31 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
         />
 
         {/* Features Section */}
-        <div className="mt-4">
-          <SidebarSectionTitle title="Features" collapsed={collapsed} />
-          <SidebarSection
-            items={filterMenuItems(SIDEBAR_SECTIONS.FEATURES)}
-            collapsed={collapsed}
-            onSelect={handleSelect}
-            activePath={activePath}
-            filePanelOpen={filePanelOpen}
-          />
-        </div>
+        {filterMenuItems(SIDEBAR_SECTIONS.FEATURES).length > 0 && (
+          <>
+            <SidebarSectionTitle title="Features" collapsed={collapsed} />
+            <SidebarSection
+              items={filterMenuItems(SIDEBAR_SECTIONS.FEATURES)}
+              collapsed={collapsed}
+              onSelect={handleSelect}
+              activePath={activePath}
+              filePanelOpen={filePanelOpen}
+            />
+          </>
+        )}
 
         {/* Account Section */}
-        <div className="mt-4">
-          <SidebarSectionTitle title="Account" collapsed={collapsed} />
-          <SidebarSection
-            items={filterMenuItems(SIDEBAR_SECTIONS.ACCOUNT)}
-            collapsed={collapsed}
-            onSelect={handleSelect}
-            activePath={activePath}
-            filePanelOpen={filePanelOpen}
-          />
-        </div>
-      </div>
+        <SidebarSectionTitle title="Account" collapsed={collapsed} />
+        <SidebarSection
+          items={filterMenuItems(SIDEBAR_SECTIONS.ACCOUNT)}
+          collapsed={collapsed}
+          onSelect={handleSelect}
+          activePath={activePath}
+          filePanelOpen={filePanelOpen}
+        />
 
-      {/* Support Section */}
-      <div className="py-3 px-2 border-t border-gray-800">
+        {/* Support Section */}
+        <SidebarSectionTitle title="Support" collapsed={collapsed} />
         <SidebarSection
           items={filterMenuItems(SIDEBAR_SECTIONS.SUPPORT)}
           collapsed={collapsed}
@@ -240,66 +198,53 @@ const Sidebar = ({ onToggleFileNavigator, onCollapse }) => {
         />
       </div>
 
-      {/* User profile section - when logged in */}
-      {isAuthenticated() && (
-        <div className="border-t border-gray-800 p-2">
-          <div
-            className={`flex items-center gap-3 p-2 rounded-lg bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 ${
-              collapsed ? "justify-center" : ""
-            }`}
-          >
-            {user?.picture ? (
-              <img
-                src={user.picture}
-                alt=""
-                className={`rounded-full object-cover border-2 border-blue-500/30 ${
-                  collapsed ? "w-8 h-8" : "w-10 h-10"
-                }`}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.style.display = "none";
-                  e.target.parentElement.innerHTML = `<div class="${
-                    collapsed ? "w-8 h-8" : "w-10 h-10"
-                  } rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-500/30">${
-                    user?.name?.charAt(0) || user?.email?.charAt(0) || "U"
-                  }</div>`;
-                }}
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div
-                className={`rounded-full bg-blue-500/20 flex items-center justify-center border-2 border-blue-500/30 ${
-                  collapsed ? "w-8 h-8" : "w-10 h-10"
-                }`}
-              >
-                {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
-              </div>
-            )}
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-                  {user?.name || user?.email}
-                </p>
-                <p className="text-xs text-gray-400">{user?.role || "User"}</p>
-              </div>
-            )}
+      {/* User Profile Section */}
+      {user && !collapsed && (
+        <div className="border-t border-gray-800 p-3">
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-800/50">
+            <div className="h-8 w-8 rounded-full bg-blue-600/30 flex items-center justify-center">
+              <User size={16} className="text-blue-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-200 truncate">
+                {user.email?.split("@")[0] || "User"}
+              </p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Collapse Toggle Button */}
+      <div className="border-t border-gray-800 p-2">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight size={20} className="text-gray-400" />
+          ) : (
+            <ChevronLeft size={20} className="text-gray-400" />
+          )}
+        </button>
+      </div>
     </div>
   );
 };
 
+// Helper component for section titles
 const SidebarSectionTitle = ({ title, collapsed }) => {
   if (collapsed) return null;
 
   return (
-    <h3 className="text-xs uppercase text-gray-500 font-semibold mb-2 px-2">
+    <h3 className="text-xs uppercase text-gray-500 font-semibold mt-6 mb-2 px-2">
       {title}
     </h3>
   );
 };
 
+// Helper component for sidebar sections
 const SidebarSection = ({
   items,
   collapsed,
@@ -315,7 +260,7 @@ const SidebarSection = ({
           item={item}
           collapsed={collapsed}
           isActive={activePath === item.path}
-          onSelect={() => onSelect(item)}
+          onSelect={onSelect}
           filePanelOpen={filePanelOpen}
         />
       ))}
@@ -323,6 +268,7 @@ const SidebarSection = ({
   );
 };
 
+// Helper component for individual sidebar items
 const SidebarItem = ({
   item,
   collapsed,
@@ -330,37 +276,54 @@ const SidebarItem = ({
   onSelect,
   filePanelOpen,
 }) => {
-  const { id, icon, text, comingSoon } = item;
+  const baseClasses = `
+    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left
+    transition-all duration-200 group relative
+  `;
 
-  // Check if this is the Past Papers item
-  const isPastPapersItem = id === "papers";
+  const activeClasses = isActive
+    ? "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+    : "hover:bg-gray-800/60 text-gray-300 hover:text-white";
+
+  const disabledClasses = item.comingSoon
+    ? "opacity-60 cursor-not-allowed"
+    : "cursor-pointer";
 
   return (
-    <div
-      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer relative
-        ${
-          isActive
-            ? "bg-blue-600 text-white"
-            : "text-gray-300 hover:bg-gray-800 hover:text-white"
-        }
-        ${comingSoon ? "opacity-40" : ""}
-        transition-all duration-200`}
-      onClick={onSelect}
-      title={comingSoon ? `${text} - Coming Soon` : text}
+    <button
+      className={`${baseClasses} ${activeClasses} ${disabledClasses}`}
+      onClick={() => onSelect(item)}
+      disabled={item.comingSoon}
+      title={collapsed ? item.text : undefined}
     >
-      <div className="flex-shrink-0">{icon}</div>
+      <div className="flex-shrink-0">{item.icon}</div>
 
       {!collapsed && (
         <>
-          <span className="text-sm font-medium">{text}</span>
-          {comingSoon && (
-            <span className="ml-auto text-xs text-blue-300 bg-blue-900/50 px-1.5 py-0.5 rounded border border-blue-800/50">
+          <span className="flex-1 text-left">{item.text}</span>
+          {item.comingSoon && (
+            <span className="text-xs bg-gray-700 px-2 py-0.5 rounded">
               Soon
             </span>
           )}
+          {item.isFileNavigator && (
+            <ChevronRight
+              size={16}
+              className={`transition-transform duration-200 ${
+                filePanelOpen ? "rotate-90" : ""
+              }`}
+            />
+          )}
         </>
       )}
-    </div>
+
+      {/* Tooltip for collapsed state */}
+      {collapsed && (
+        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+          {item.text}
+        </div>
+      )}
+    </button>
   );
 };
 

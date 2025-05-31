@@ -76,9 +76,11 @@ import {
   addPaperGoal,
   getUserCompletedMocks,
   deleteGoal,
+  updateGoalStatus,
 } from "../firebase/userService";
 import "../animations.css";
 import fileStructure from "../data/fileStructure.json";
+import { useIsMobile, useIsTablet } from "../hooks/useMediaQuery";
 
 // Add this function to calculate a performance comment based on scores
 const generatePerformanceComment = (scores, trend) => {
@@ -215,12 +217,23 @@ const getGoalsBySubjectAndUnit = (goals) => {
   return grouped;
 };
 
+// Helper function to extract year from filename or path
+const extractYear = (text) => {
+  if (!text) return null;
+  const yearMatch = text.match(/\b(20\d{2})\b/);
+  return yearMatch ? parseInt(yearMatch[1]) : null;
+};
+
 export default function UserDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("performance");
   const [mockExams, setMockExams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // State for subject preferences
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [subjectPreferences, setSubjectPreferences] = useState([]);
   const [stats, setStats] = useState({
     totalMocks: 0,
     totalTimeSpent: 0,
@@ -228,16 +241,42 @@ export default function UserDashboard() {
     mostAttemptedSubject: "",
     recentActivity: null,
   });
-  const [subjectPreferences, setSubjectPreferences] = useState([]);
-  const [availableSubjects, setAvailableSubjects] = useState([]);
-  const [imageError, setImageError] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // New state for performance analytics
-  const [selectedSubject, setSelectedSubject] = useState("");
+  // Add these state variables
+  const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedUnit, setSelectedUnit] = useState("all");
-  const [filteredExams, setFilteredExams] = useState([]);
   const [subjectList, setSubjectList] = useState([]);
   const [unitList, setUnitList] = useState([]);
+
+  // Goals-related state
+  const [userGoals, setUserGoals] = useState([]);
+  const [selectedGoals, setSelectedGoals] = useState([]);
+  const [goalSearchQuery, setGoalSearchQuery] = useState("");
+  const [expandedSubjects, setExpandedSubjects] = useState({});
+  const [expandedFolders, setExpandedFolders] = useState({});
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
+
+  // Add Paper Management State
+  const [availablePapers, setAvailablePapers] = useState([]);
+  const [selectedPapers, setSelectedPapers] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [availableUnits, setAvailableUnits] = useState([]);
+  const [paperSearchQuery, setPaperSearchQuery] = useState("");
+  const [selectedSubjectForPapers, setSelectedSubjectForPapers] =
+    useState("all");
+  const [selectedYearForPapers, setSelectedYearForPapers] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("IAL");
+  const [selectedUnitForPapers, setSelectedUnitForPapers] = useState("all");
+  const [isLoadingPapers, setIsLoadingPapers] = useState(false);
+  const [paperSelectionModalOpen, setPaperSelectionModalOpen] = useState(false);
+
+  // Media query hooks for responsive design
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+
+  // New state for performance analytics
+  const [filteredExams, setFilteredExams] = useState([]);
   const [performanceData, setPerformanceData] = useState({
     labels: [],
     scores: [],
@@ -249,31 +288,15 @@ export default function UserDashboard() {
 
   // New state for goals tab
   const [goals, setGoals] = useState([]);
-  const [isLoadingGoals, setIsLoadingGoals] = useState(true);
   const [goalCompletionRate, setGoalCompletionRate] = useState(0);
-  const [selectedGoals, setSelectedGoals] = useState([]);
   const [goalSortBy, setGoalSortBy] = useState("date-added");
   const [groupBySubject, setGroupBySubject] = useState(true);
-  const [expandedSubjects, setExpandedSubjects] = useState({});
-
-  // New state for batch paper selection modal
-  const [paperSelectionModalOpen, setPaperSelectionModalOpen] = useState(false);
-  const [isLoadingPapers, setIsLoadingPapers] = useState(false);
-  const [availablePapers, setAvailablePapers] = useState([]);
-  const [selectedPapers, setSelectedPapers] = useState([]);
-  const [paperSearchQuery, setPaperSearchQuery] = useState("");
-  const [expandedFolders, setExpandedFolders] = useState({});
-
-  // New hierarchical selection states
-  const [selectedLevel, setSelectedLevel] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedUnits, setSelectedUnits] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [yearRange, setYearRange] = useState({ from: 2015, to: 2023 });
   const [paperPreview, setPaperPreview] = useState([]);
-  const [availableUnits, setAvailableUnits] = useState([]);
-  const [availableYears, setAvailableYears] = useState([]);
 
   // Add back the missing goalFilterType state
   const [goalFilterType, setGoalFilterType] = useState("all");
@@ -2945,30 +2968,60 @@ export default function UserDashboard() {
   }, [goals]);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-8 px-4 sm:px-6 md:px-16">
-      {/* Header with user info - Glassmorphic card */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 p-5 bg-gray-800/40 backdrop-blur-md border border-gray-700/50 rounded-xl">
-        <div className="flex items-center mb-4 md:mb-0">
+    <div
+      className={`min-h-screen bg-gray-900 text-white ${
+        isMobile ? "py-4 px-3" : "py-8 px-4 sm:px-6 md:px-16"
+      }`}
+    >
+      {/* Header with user info - Mobile optimized */}
+      <div
+        className={`flex flex-col md:flex-row justify-between items-start md:items-center ${
+          isMobile ? "mb-4 p-3" : "mb-8 p-5"
+        } bg-gray-800/40 backdrop-blur-md border border-gray-700/50 rounded-xl`}
+      >
+        <div
+          className={`flex items-center ${isMobile ? "mb-3" : "mb-4"} md:mb-0`}
+        >
           {user?.picture && !imageError ? (
             <img
               src={user.picture}
               alt={user?.name || "User"}
-              className="h-16 w-16 rounded-full mr-4 object-cover border-2 border-blue-500/30"
+              className={`${
+                isMobile ? "h-12 w-12" : "h-16 w-16"
+              } rounded-full ${
+                isMobile ? "mr-3" : "mr-4"
+              } object-cover border-2 border-blue-500/30`}
               onError={handleImageError}
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="h-16 w-16 rounded-full mr-4 bg-gray-800/70 flex items-center justify-center border-2 border-blue-500/30">
-              <User size={32} className="text-blue-400" />
+            <div
+              className={`${
+                isMobile ? "h-12 w-12" : "h-16 w-16"
+              } rounded-full ${
+                isMobile ? "mr-3" : "mr-4"
+              } bg-gray-800/70 flex items-center justify-center border-2 border-blue-500/30`}
+            >
+              <User size={isMobile ? 24 : 32} className="text-blue-400" />
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            <h1
+              className={`${
+                isMobile ? "text-lg" : "text-2xl"
+              } font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500`}
+            >
               {user?.name || "User"}
             </h1>
-            <p className="text-gray-400">{user?.email}</p>
+            <p className={`text-gray-400 ${isMobile ? "text-sm" : ""}`}>
+              {user?.email}
+            </p>
             <div className="mt-1">
-              <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300">
+              <span
+                className={`px-2 py-1 ${
+                  isMobile ? "text-xs" : "text-xs"
+                } rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300`}
+              >
                 {user?.role || "User"}
               </span>
             </div>
@@ -2978,18 +3031,29 @@ export default function UserDashboard() {
         <div className="flex space-x-2">
           <Link
             to="/"
-            className="bg-blue-600/70 hover:bg-blue-700/70 backdrop-blur-sm px-4 py-2 rounded-lg text-sm font-medium flex items-center border border-blue-500/40 shadow-sm shadow-blue-500/20 transition-all"
+            className={`bg-blue-600/70 hover:bg-blue-700/70 backdrop-blur-sm ${
+              isMobile ? "px-3 py-2 text-sm" : "px-4 py-2 text-sm"
+            } rounded-lg font-medium flex items-center border border-blue-500/40 shadow-sm shadow-blue-500/20 transition-all`}
           >
-            <FileText size={16} className="mr-2" />
+            <FileText
+              size={isMobile ? 14 : 16}
+              className={`${isMobile ? "mr-1" : "mr-2"}`}
+            />
             Past Papers
           </Link>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap border-b border-gray-700 mt-8 mb-6">
+      {/* Mobile optimized tabs */}
+      <div
+        className={`flex ${
+          isMobile ? "flex-wrap gap-1" : "flex-wrap"
+        } border-b border-gray-700 ${isMobile ? "mt-4 mb-4" : "mt-8 mb-6"}`}
+      >
         <button
-          className={`px-4 py-2.5 whitespace-nowrap rounded-md transition-all mr-4 ${
+          className={`${
+            isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
+          } whitespace-nowrap rounded-md transition-all ${
             activeTab === "performance"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
@@ -2998,24 +3062,28 @@ export default function UserDashboard() {
         >
           <span className="flex items-center">
             <div
-              className={`mr-2 p-1.5 rounded-full ${
+              className={`${
+                isMobile ? "mr-1 p-1" : "mr-2 p-1.5"
+              } rounded-full ${
                 activeTab === "performance"
                   ? "bg-purple-500"
                   : "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
               }`}
             >
               <LineChart
-                size={16}
+                size={isMobile ? 12 : 16}
                 className={`${
                   activeTab === "performance" ? "text-white" : "text-purple-400"
                 }`}
               />
             </div>
-            Performance
+            {isMobile ? "Performance" : "Performance"}
           </span>
         </button>
         <button
-          className={`px-4 py-2.5 whitespace-nowrap rounded-md transition-all mr-4 ${
+          className={`${
+            isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
+          } whitespace-nowrap rounded-md transition-all ${
             activeTab === "history"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
@@ -3024,24 +3092,28 @@ export default function UserDashboard() {
         >
           <span className="flex items-center">
             <div
-              className={`mr-2 p-1.5 rounded-full ${
+              className={`${
+                isMobile ? "mr-1 p-1" : "mr-2 p-1.5"
+              } rounded-full ${
                 activeTab === "history"
                   ? "bg-purple-500"
                   : "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
               }`}
             >
               <History
-                size={16}
+                size={isMobile ? 12 : 16}
                 className={`${
                   activeTab === "history" ? "text-white" : "text-purple-400"
                 }`}
               />
             </div>
-            Exam History
+            {isMobile ? "History" : "Exam History"}
           </span>
         </button>
         <button
-          className={`px-4 py-2.5 whitespace-nowrap rounded-md transition-all mr-4 ${
+          className={`${
+            isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
+          } whitespace-nowrap rounded-md transition-all ${
             activeTab === "goals"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
@@ -3050,25 +3122,29 @@ export default function UserDashboard() {
         >
           <span className="flex items-center">
             <div
-              className={`mr-2 p-1.5 rounded-full ${
+              className={`${
+                isMobile ? "mr-1 p-1" : "mr-2 p-1.5"
+              } rounded-full ${
                 activeTab === "goals"
                   ? "bg-purple-500"
                   : "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
               }`}
             >
               <Target
-                size={16}
+                size={isMobile ? 12 : 16}
                 className={`${
                   activeTab === "goals" ? "text-white" : "text-purple-400"
                 }`}
               />
             </div>
-            Study Goals
+            {isMobile ? "Goals" : "Study Goals"}
           </span>
         </button>
         <button
           onClick={() => setActiveTab("preferences")}
-          className={`px-4 py-2.5 whitespace-nowrap rounded-md transition-all ${
+          className={`${
+            isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5"
+          } whitespace-nowrap rounded-md transition-all ${
             activeTab === "preferences"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
@@ -3076,38 +3152,59 @@ export default function UserDashboard() {
         >
           <span className="flex items-center">
             <div
-              className={`mr-2 p-1.5 rounded-full ${
+              className={`${
+                isMobile ? "mr-1 p-1" : "mr-2 p-1.5"
+              } rounded-full ${
                 activeTab === "preferences"
                   ? "bg-purple-500"
                   : "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
               }`}
             >
               <Settings
-                size={16}
+                size={isMobile ? 12 : 16}
                 className={`${
                   activeTab === "preferences" ? "text-white" : "text-purple-400"
                 }`}
               />
             </div>
-            Preferences
+            {isMobile ? "Settings" : "Preferences"}
           </span>
         </button>
       </div>
 
       {/* Tab content */}
       {activeTab === "performance" && (
-        <div className="space-y-6">
+        <div className={`space-y-${isMobile ? "4" : "6"}`}>
           {/* Filters Section */}
-          <div className="bg-gray-800/40 backdrop-blur-md rounded-lg shadow-md p-5">
-            <h3 className="text-lg font-semibold mb-4 flex items-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              <LineChart className="mr-2 text-blue-400" size={20} />
+          <div
+            className={`bg-gray-800/40 backdrop-blur-md rounded-lg shadow-md ${
+              isMobile ? "p-3" : "p-5"
+            }`}
+          >
+            <h3
+              className={`${isMobile ? "text-base" : "text-lg"} font-semibold ${
+                isMobile ? "mb-3" : "mb-4"
+              } flex items-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500`}
+            >
+              <LineChart
+                className={`${isMobile ? "mr-1" : "mr-2"} text-blue-400`}
+                size={isMobile ? 16 : 20}
+              />
               Performance Analytics
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div
+              className={`grid grid-cols-1 ${
+                isMobile ? "" : "md:grid-cols-2"
+              } gap-${isMobile ? "3" : "4"} ${isMobile ? "mb-3" : "mb-4"}`}
+            >
               {/* Subject Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label
+                  className={`block ${
+                    isMobile ? "text-xs" : "text-sm"
+                  } font-medium text-gray-300 mb-1`}
+                >
                   Subject
                 </label>
                 <div className="relative">
@@ -3117,7 +3214,9 @@ export default function UserDashboard() {
                       setSelectedSubject(e.target.value);
                       setSelectedUnit("all"); // Reset unit when subject changes
                     }}
-                    className="w-full py-2 px-3 bg-gray-700/70 backdrop-blur-sm border border-gray-600/70 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700/90"
+                    className={`w-full ${
+                      isMobile ? "py-2 px-2 text-sm" : "py-2 px-3"
+                    } bg-gray-700/70 backdrop-blur-sm border border-gray-600/70 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700/90`}
                   >
                     {subjectList.map((subject) => (
                       <option key={subject.id} value={subject.id}>
@@ -3127,21 +3226,27 @@ export default function UserDashboard() {
                   </select>
                   <ChevronDown
                     className="absolute right-3 top-2.5 text-blue-400 pointer-events-none"
-                    size={16}
+                    size={14}
                   />
                 </div>
               </div>
 
               {/* Unit/Paper Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label
+                  className={`block ${
+                    isMobile ? "text-xs" : "text-sm"
+                  } font-medium text-gray-300 mb-1`}
+                >
                   {selectedSubject.startsWith("IAL-") ? "Unit" : "Paper"}
                 </label>
                 <div className="relative">
                   <select
                     value={selectedUnit}
                     onChange={(e) => setSelectedUnit(e.target.value)}
-                    className="w-full py-2 px-3 bg-gray-700/70 backdrop-blur-sm border border-gray-600/70 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700/90"
+                    className={`w-full ${
+                      isMobile ? "py-2 px-2 text-sm" : "py-2 px-3"
+                    } bg-gray-700/70 backdrop-blur-sm border border-gray-600/70 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-700/90`}
                   >
                     {unitList.map((unit) => (
                       <option key={unit.id} value={unit.id}>
@@ -3151,33 +3256,83 @@ export default function UserDashboard() {
                   </select>
                   <ChevronDown
                     className="absolute right-3 top-2.5 text-blue-400 pointer-events-none"
-                    size={16}
+                    size={14}
                   />
                 </div>
               </div>
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div className="bg-gray-700/50 backdrop-blur-sm p-4 rounded-lg flex items-center border border-gray-600/30">
-                <div className="bg-blue-500/20 p-2 rounded-lg mr-3 border border-blue-500/30">
-                  <FileText size={20} className="text-blue-400" />
+            <div
+              className={`grid grid-cols-${
+                isMobile ? "1" : "1 md:grid-cols-3"
+              } gap-${isMobile ? "2" : "4"} ${isMobile ? "mt-3" : "mt-4"}`}
+            >
+              <div
+                className={`bg-gray-700/50 backdrop-blur-sm ${
+                  isMobile ? "p-3" : "p-4"
+                } rounded-lg flex items-center border border-gray-600/30`}
+              >
+                <div
+                  className={`bg-blue-500/20 ${
+                    isMobile ? "p-1.5" : "p-2"
+                  } rounded-lg ${
+                    isMobile ? "mr-2" : "mr-3"
+                  } border border-blue-500/30`}
+                >
+                  <FileText
+                    size={isMobile ? 16 : 20}
+                    className="text-blue-400"
+                  />
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Total Exams</div>
-                  <div className="text-xl font-semibold">
+                  <div
+                    className={`${
+                      isMobile ? "text-xs" : "text-sm"
+                    } text-gray-400`}
+                  >
+                    Total Exams
+                  </div>
+                  <div
+                    className={`${
+                      isMobile ? "text-lg" : "text-xl"
+                    } font-semibold`}
+                  >
                     {filteredExams.length}
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-700/50 backdrop-blur-sm p-4 rounded-lg flex items-center border border-gray-600/30">
-                <div className="bg-green-500/20 p-2 rounded-lg mr-3 border border-green-500/30">
-                  <Percent size={20} className="text-green-400" />
+              <div
+                className={`bg-gray-700/50 backdrop-blur-sm ${
+                  isMobile ? "p-3" : "p-4"
+                } rounded-lg flex items-center border border-gray-600/30`}
+              >
+                <div
+                  className={`bg-green-500/20 ${
+                    isMobile ? "p-1.5" : "p-2"
+                  } rounded-lg ${
+                    isMobile ? "mr-2" : "mr-3"
+                  } border border-green-500/30`}
+                >
+                  <Percent
+                    size={isMobile ? 16 : 20}
+                    className="text-green-400"
+                  />
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Average Score</div>
-                  <div className="text-xl font-semibold">
+                  <div
+                    className={`${
+                      isMobile ? "text-xs" : "text-sm"
+                    } text-gray-400`}
+                  >
+                    Average Score
+                  </div>
+                  <div
+                    className={`${
+                      isMobile ? "text-lg" : "text-xl"
+                    } font-semibold`}
+                  >
                     {performanceData.scores.length > 0
                       ? `${Math.round(
                           performanceData.scores.reduce((a, b) => a + b, 0) /
@@ -3188,9 +3343,15 @@ export default function UserDashboard() {
                 </div>
               </div>
 
-              <div className="bg-gray-700/50 backdrop-blur-sm p-4 rounded-lg flex items-center border border-gray-600/30">
+              <div
+                className={`bg-gray-700/50 backdrop-blur-sm ${
+                  isMobile ? "p-3" : "p-4"
+                } rounded-lg flex items-center border border-gray-600/30`}
+              >
                 <div
-                  className={`p-2 rounded-lg mr-3 border ${
+                  className={`${isMobile ? "p-1.5" : "p-2"} rounded-lg ${
+                    isMobile ? "mr-2" : "mr-3"
+                  } border ${
                     performanceData.trend === "increasing"
                       ? "bg-green-500/20 border-green-500/30"
                       : performanceData.trend === "decreasing"

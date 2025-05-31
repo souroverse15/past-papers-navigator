@@ -1,0 +1,165 @@
+/* Mobile and Tablet Styles */
+
+/* Override default styles for better touch interaction */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Ensure content is always full height on mobile */
+.mobile-full-height {
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: -moz-available;
+  height: fill-available;
+}
+
+/* Smooth scrolling for content areas */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Safe area padding for notched devices */
+.mobile-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-top: env(safe-area-inset-top, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Mobile bottom navigation bar */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background-color: #141e33;
+  border-top: 1px solid #2a3549;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  z-index: 50;
+}
+
+/* Mobile content container with bottom nav padding */
+.mobile-content-container {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
+}
+
+/* Mobile tab bar styles */
+.mobile-tab-bar {
+  display: flex;
+  background-color: rgba(20, 30, 51, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid #2a3549;
+}
+
+.mobile-tab-button {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.mobile-tab-button.active {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-bottom: 2px solid #3b82f6;
+}
+
+/* Mobile header with backbutton */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: rgba(20, 30, 51, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid #2a3549;
+}
+
+.mobile-back-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(55, 65, 81, 0.5);
+  margin-right: 0.75rem;
+}
+
+/* Loading spinner */
+.mobile-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: mobile-spin 1s ease-in-out infinite;
+}
+
+@keyframes mobile-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Prevent overscrolling on mobile */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/* Optimizations for iframe embedding */
+iframe {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar while keeping functionality */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Mobile bottom sheet */
+.mobile-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #1a2337;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 60;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.mobile-bottom-sheet-handle {
+  width: 36px;
+  height: 5px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  margin: 8px auto;
+}
