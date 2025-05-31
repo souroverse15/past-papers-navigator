@@ -2,10 +2,5 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build",
-  "functions": {
-    "app/**": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "buildCommand": "npm run build"
 }
