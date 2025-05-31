@@ -253,6 +253,127 @@ export default function MobileFileNavigator({
         );
       }
 
+      // Check if this is a session folder with duplicate naming pattern
+      // e.g., "May-June": { "May-June": [array of papers] }
+      const isSessionWithDuplicateName =
+        value &&
+        typeof value === "object" &&
+        !value.qp &&
+        Object.keys(value).length === 1 &&
+        Object.keys(value)[0] === key &&
+        Array.isArray(value[key]);
+
+      // If it's a session folder with duplicate naming, render the papers directly
+      if (isSessionWithDuplicateName) {
+        const papers = value[key];
+        const sessionIsExpanded =
+          expandedFolders[fullPath] || isActiveOrParent(fullPath);
+
+        return (
+          <div key={fullPath}>
+            <div
+              className={`border-b border-gray-800/50 py-3 px-4 flex items-center justify-between touch-manipulation transition-all duration-200 ${
+                isActiveOrParent(fullPath)
+                  ? "bg-gray-800/60"
+                  : "hover:bg-gray-800/30 active:bg-gray-700/40"
+              }`}
+              onClick={() => toggleFolder(fullPath)}
+              onTouchStart={() => {}}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                toggleFolder(fullPath);
+              }}
+            >
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                {sessionIsExpanded ? (
+                  <ChevronDown
+                    size={18}
+                    className="text-gray-400 flex-shrink-0"
+                  />
+                ) : (
+                  <ChevronRight
+                    size={18}
+                    className="text-gray-400 flex-shrink-0"
+                  />
+                )}
+                <Folder
+                  size={18}
+                  className={`flex-shrink-0 ${
+                    isActiveOrParent(fullPath)
+                      ? "text-blue-400"
+                      : "text-gray-400"
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={`text-sm font-medium block truncate ${
+                      isActiveOrParent(fullPath)
+                        ? "text-blue-100"
+                        : "text-gray-200"
+                    }`}
+                  >
+                    {key}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    {papers.length} papers
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {sessionIsExpanded && (
+              <div className="pl-6 border-l-2 border-gray-800/30 ml-4">
+                {papers.map((paper, index) => {
+                  const paperPath = `${fullPath}/${paper.name}`;
+                  const paperIsActive = activePath === paperPath;
+
+                  return (
+                    <div
+                      key={`${paperPath}-${index}`}
+                      className={`border-b border-gray-800/50 py-3 px-4 flex items-center justify-between touch-manipulation transition-all duration-200 ${
+                        paperIsActive
+                          ? "bg-blue-600/20 border-blue-500/30"
+                          : "hover:bg-gray-800/30 active:bg-gray-700/40"
+                      }`}
+                      onClick={() => onFileSelect(paper, paperPath)}
+                      onTouchStart={() => {}}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        onFileSelect(paper, paperPath);
+                      }}
+                    >
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <File
+                          size={18}
+                          className={
+                            paperIsActive ? "text-blue-400" : "text-gray-400"
+                          }
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={`text-sm font-medium block truncate ${
+                              paperIsActive ? "text-blue-100" : "text-gray-200"
+                            }`}
+                          >
+                            {paper.name}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight
+                        size={16}
+                        className={`flex-shrink-0 ${
+                          paperIsActive ? "text-blue-400" : "text-gray-500"
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      }
+
       // If it's a folder
       const isExpanded =
         expandedFolders[fullPath] || isActiveOrParent(fullPath);
