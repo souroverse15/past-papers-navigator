@@ -3053,12 +3053,17 @@ export default function UserDashboard() {
         <button
           className={`${
             isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
-          } whitespace-nowrap rounded-md transition-all ${
+          } whitespace-nowrap rounded-md transition-all touch-manipulation ${
             activeTab === "performance"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
           }`}
           onClick={() => setActiveTab("performance")}
+          onTouchStart={() => {}}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setActiveTab("performance");
+          }}
         >
           <span className="flex items-center">
             <div
@@ -3083,12 +3088,17 @@ export default function UserDashboard() {
         <button
           className={`${
             isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
-          } whitespace-nowrap rounded-md transition-all ${
+          } whitespace-nowrap rounded-md transition-all touch-manipulation ${
             activeTab === "history"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
           }`}
           onClick={() => setActiveTab("history")}
+          onTouchStart={() => {}}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setActiveTab("history");
+          }}
         >
           <span className="flex items-center">
             <div
@@ -3113,12 +3123,17 @@ export default function UserDashboard() {
         <button
           className={`${
             isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5 mr-4"
-          } whitespace-nowrap rounded-md transition-all ${
+          } whitespace-nowrap rounded-md transition-all touch-manipulation ${
             activeTab === "goals"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
           }`}
           onClick={() => setActiveTab("goals")}
+          onTouchStart={() => {}}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setActiveTab("goals");
+          }}
         >
           <span className="flex items-center">
             <div
@@ -3144,11 +3159,16 @@ export default function UserDashboard() {
           onClick={() => setActiveTab("preferences")}
           className={`${
             isMobile ? "px-2 py-2 text-xs mr-1 mb-1" : "px-4 py-2.5"
-          } whitespace-nowrap rounded-md transition-all ${
+          } whitespace-nowrap rounded-md transition-all touch-manipulation ${
             activeTab === "preferences"
               ? "bg-blue-600/60 backdrop-blur-sm text-white border border-blue-500/50 shadow-sm shadow-blue-500/20"
               : "text-gray-300 hover:bg-gray-700/40 hover:text-gray-100"
           }`}
+          onTouchStart={() => {}}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setActiveTab("preferences");
+          }}
         >
           <span className="flex items-center">
             <div
@@ -3584,12 +3604,19 @@ export default function UserDashboard() {
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className={`p-1.5 rounded-md ${
+              className={`p-1.5 rounded-md touch-manipulation ${
                 isRefreshing
                   ? "bg-gray-700/60 text-gray-500"
                   : "bg-blue-900/30 hover:bg-blue-800/40 text-blue-300 border border-blue-700/50"
               } transition-colors`}
               title="Refresh mock exam data"
+              onTouchStart={() => {}}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                if (!isRefreshing) {
+                  handleRefresh();
+                }
+              }}
             >
               <RefreshCw
                 size={16}
@@ -3676,7 +3703,16 @@ export default function UserDashboard() {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => setGroupBySubject(!groupBySubject)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-700/50 hover:bg-gray-700/70 text-white rounded-lg transition-colors"
+                  className={`flex items-center px-3 py-1.5 text-xs rounded-md border touch-manipulation ${
+                    groupBySubject
+                      ? "bg-blue-600/40 text-white border-blue-500/50"
+                      : "bg-gray-800 text-gray-300 border-gray-700"
+                  }`}
+                  onTouchStart={() => {}}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    setGroupBySubject(!groupBySubject);
+                  }}
                 >
                   <BookOpen size={18} />
                   <span>{groupBySubject ? "Ungroup" : "Group by Subject"}</span>
@@ -3732,31 +3768,46 @@ export default function UserDashboard() {
                 <div className="flex items-center bg-gray-800 rounded-md border border-gray-700">
                   <button
                     onClick={() => setGoalFilterType("all")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-l-md ${
+                    className={`px-3 py-1.5 text-xs font-medium rounded-l-md touch-manipulation ${
                       goalFilterType === "all"
                         ? "bg-blue-600/40 text-white"
                         : "text-gray-300"
                     }`}
+                    onTouchStart={() => {}}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      setGoalFilterType("all");
+                    }}
                   >
                     All
                   </button>
                   <button
                     onClick={() => setGoalFilterType("pending")}
-                    className={`px-3 py-1.5 text-xs font-medium ${
+                    className={`px-3 py-1.5 text-xs font-medium touch-manipulation ${
                       goalFilterType === "pending"
                         ? "bg-blue-600/40 text-white"
                         : "text-gray-300"
                     }`}
+                    onTouchStart={() => {}}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      setGoalFilterType("pending");
+                    }}
                   >
                     Pending
                   </button>
                   <button
                     onClick={() => setGoalFilterType("completed")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-r-md ${
+                    className={`px-3 py-1.5 text-xs font-medium rounded-r-md touch-manipulation ${
                       goalFilterType === "completed"
                         ? "bg-blue-600/40 text-white"
                         : "text-gray-300"
                     }`}
+                    onTouchStart={() => {}}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      setGoalFilterType("completed");
+                    }}
                   >
                     Completed
                   </button>
