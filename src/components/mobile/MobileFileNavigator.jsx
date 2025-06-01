@@ -961,22 +961,24 @@ export default function MobileFileNavigator({
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               {/* Only show checkbox if user is logged in and paper is not already in goals */}
               {!isGoal && user && (
-                <div
-                  className="flex-shrink-0"
+                <button
+                  type="button"
+                  className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                   onClick={(e) =>
                     togglePaperSelection(e, { ...node[key], path: currentPath })
                   }
+                  aria-label={`Select paper ${node[key].name || key}`}
                 >
                   <div
-                    className={`w-5 h-5 flex items-center justify-center rounded border ${
+                    className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${
                       isSelected
                         ? "bg-blue-500 border-blue-600"
-                        : "border-gray-600 bg-gray-800"
+                        : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                     }`}
                   >
                     {isSelected && <Check size={14} className="text-white" />}
                   </div>
-                </div>
+                </button>
               )}
 
               {/* Add left margin if no checkbox is shown */}
@@ -1063,24 +1065,26 @@ export default function MobileFileNavigator({
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {/* Only show checkbox if user is logged in and paper is not already in goals */}
                     {!isGoal && user && (
-                      <div
-                        className="flex-shrink-0"
+                      <button
+                        type="button"
+                        className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                         onClick={(e) =>
                           togglePaperSelection(e, { ...paper, path: paperPath })
                         }
+                        aria-label={`Select paper ${paper.name}`}
                       >
                         <div
-                          className={`w-5 h-5 flex items-center justify-center rounded border ${
+                          className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${
                             isSelected
                               ? "bg-blue-500 border-blue-600"
-                              : "border-gray-600 bg-gray-800"
+                              : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                           }`}
                         >
                           {isSelected && (
                             <Check size={14} className="text-white" />
                           )}
                         </div>
-                      </div>
+                      </button>
                     )}
 
                     {/* Add left margin if no checkbox is shown */}
@@ -1164,7 +1168,7 @@ export default function MobileFileNavigator({
               {!examMode && user && key.match(/^20\d{2}$/) && (
                 <>
                   {areAllPapersInYearInGoals(currentPath, node[key]) ? (
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 p-1">
                       <Target
                         size={16}
                         className="text-blue-400"
@@ -1172,24 +1176,26 @@ export default function MobileFileNavigator({
                       />
                     </div>
                   ) : (
-                    <div
-                      className="flex-shrink-0"
+                    <button
+                      type="button"
+                      className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                       onClick={(e) =>
                         toggleYearSelection(e, currentPath, node[key])
                       }
+                      aria-label={`Select all papers in year ${key}`}
                     >
                       <div
-                        className={`w-5 h-5 flex items-center justify-center rounded border ${
+                        className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${
                           hasSelectedPapersInYear(currentPath, node[key])
                             ? "bg-blue-500 border-blue-600"
-                            : "border-gray-600 bg-gray-800 hover:border-blue-400"
+                            : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                         }`}
                       >
                         {hasSelectedPapersInYear(currentPath, node[key]) && (
                           <Check size={14} className="text-white" />
                         )}
                       </div>
-                    </div>
+                    </button>
                   )}
                 </>
               )}
@@ -1201,7 +1207,7 @@ export default function MobileFileNavigator({
                 !key.match(/^20\d{2}$/) && (
                   <>
                     {areAllPapersInSessionInGoals(currentPath, node[key]) ? (
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 p-1">
                         <Target
                           size={16}
                           className="text-blue-400"
@@ -1209,17 +1215,19 @@ export default function MobileFileNavigator({
                         />
                       </div>
                     ) : (
-                      <div
-                        className="flex-shrink-0"
+                      <button
+                        type="button"
+                        className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                         onClick={(e) =>
                           toggleSessionSelection(e, currentPath, node[key])
                         }
+                        aria-label={`Select all papers in session ${key}`}
                       >
                         <div
-                          className={`w-5 h-5 flex items-center justify-center rounded border ${
+                          className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${
                             hasSelectedPapersInSession(currentPath, node[key])
                               ? "bg-blue-500 border-blue-600"
-                              : "border-gray-600 bg-gray-800 hover:border-blue-400"
+                              : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                           }`}
                         >
                           {hasSelectedPapersInSession(
@@ -1227,7 +1235,7 @@ export default function MobileFileNavigator({
                             node[key]
                           ) && <Check size={14} className="text-white" />}
                         </div>
-                      </div>
+                      </button>
                     )}
                   </>
                 )}
@@ -1303,25 +1311,27 @@ export default function MobileFileNavigator({
               <div className="flex items-start space-x-3">
                 {/* Only show checkbox if user is logged in and paper is not already in goals */}
                 {!isGoal && user && (
-                  <div
-                    className="flex-shrink-0 mt-1"
+                  <button
+                    type="button"
+                    className="flex-shrink-0 mt-1 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                     onClick={(e) =>
                       togglePaperSelection(e, {
                         ...result.paper,
                         path: result.path,
                       })
                     }
+                    aria-label={`Select paper ${result.paper.name}`}
                   >
                     <div
-                      className={`w-5 h-5 flex items-center justify-center rounded border ${
+                      className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${
                         isSelected
                           ? "bg-blue-500 border-blue-600"
-                          : "border-gray-600 bg-gray-800"
+                          : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                       }`}
                     >
                       {isSelected && <Check size={14} className="text-white" />}
                     </div>
-                  </div>
+                  </button>
                 )}
                 {/* Add left margin if no checkbox is shown */}
                 {isGoal && <div className="w-5 flex-shrink-0"></div>}

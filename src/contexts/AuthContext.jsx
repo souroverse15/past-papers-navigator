@@ -34,9 +34,10 @@ export function AuthProvider({ children }) {
               // User is banned, log them out
               localStorage.removeItem("google_auth_token");
               setUser(null);
-              alert(
-                "Your account has been banned. Please contact the administrator for more information."
+              console.error(
+                "Auth Error: Your account has been banned. Please contact the administrator for more information."
               );
+              setLoading(false);
               return;
             }
 
@@ -109,8 +110,9 @@ export function AuthProvider({ children }) {
       ) {
         // User is banned, log them out
         localStorage.removeItem("google_auth_token");
-        alert(
-          "Your account has been banned. Please contact the administrator for more information."
+        setUser(null);
+        console.error(
+          "Login Error: Your account has been banned. Please contact the administrator for more information."
         );
         setLoading(false);
         return null;
@@ -141,7 +143,9 @@ export function AuthProvider({ children }) {
       return userWithRole;
     } catch (error) {
       console.error("Error during login:", error);
-      alert("Login failed. Please try again.");
+      localStorage.removeItem("google_auth_token");
+      setUser(null);
+      console.error("Login failed. Please try again.");
       setLoading(false);
       return null;
     }

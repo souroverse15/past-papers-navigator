@@ -30,8 +30,16 @@ function Login() {
   // Handle successful login and redirect
   const onLoginSuccess = async (credentialResponse) => {
     setIsLoggingIn(true);
-    await handleLogin(credentialResponse);
-    navigate("/");
+    const loginResult = await handleLogin(credentialResponse);
+    // Only navigate if login was successful and returned a user object
+    if (loginResult) {
+      navigate("/");
+    } else {
+      // If loginResult is null (e.g., banned user or other error handled in AuthContext),
+      // stop the loading spinner but don't navigate.
+      // Error messages should be handled/displayed by AuthContext or a global error system.
+      setIsLoggingIn(false);
+    }
   };
 
   return (
