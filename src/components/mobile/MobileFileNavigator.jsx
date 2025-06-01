@@ -945,7 +945,7 @@ export default function MobileFileNavigator({
         return (
           <div
             key={currentPath}
-            className={`border-b border-gray-800/50 py-3 px-4 flex items-center justify-between touch-manipulation transition-all duration-200 ${
+            className={`border-b border-gray-800/50 py-3 px-4 flex items-center justify-between transition-all duration-200 ${
               activePath === currentPath
                 ? "bg-blue-600/20 border-blue-500/30"
                 : "hover:bg-gray-800/30 active:bg-gray-700/40"
@@ -953,13 +953,6 @@ export default function MobileFileNavigator({
               isSelected ? "bg-indigo-900/30" : ""
             }`}
             onClick={() => {
-              if (!examMode) {
-                handleFileSelection(node[key], currentPath);
-              }
-            }}
-            onTouchStart={() => {}}
-            onTouchEnd={(e) => {
-              e.preventDefault();
               if (!examMode) {
                 handleFileSelection(node[key], currentPath);
               }
@@ -1054,7 +1047,7 @@ export default function MobileFileNavigator({
               return (
                 <div
                   key={uniqueKey}
-                  className={`border-b border-gray-800/50 py-3 px-4 ml-4 flex items-center justify-between touch-manipulation transition-all duration-200 ${
+                  className={`border-b border-gray-800/50 py-3 px-4 ml-4 flex items-center justify-between transition-all duration-200 ${
                     activePath === paperPath
                       ? "bg-blue-600/20 border-blue-500/30"
                       : "hover:bg-gray-800/30 active:bg-gray-700/40"
@@ -1062,13 +1055,6 @@ export default function MobileFileNavigator({
                     isSelected ? "bg-indigo-900/30" : ""
                   }`}
                   onClick={() => {
-                    if (!examMode) {
-                      handleFileSelection(paper, paperPath);
-                    }
-                  }}
-                  onTouchStart={() => {}}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
                     if (!examMode) {
                       handleFileSelection(paper, paperPath);
                     }
@@ -1162,19 +1148,12 @@ export default function MobileFileNavigator({
       return (
         <div key={currentPath}>
           <div
-            className={`border-b border-gray-800/50 py-4 px-4 flex items-center justify-between touch-manipulation transition-all duration-200 ${
+            className={`border-b border-gray-800/50 py-4 px-4 flex items-center justify-between transition-all duration-200 ${
               isActive
                 ? "bg-gray-800/60"
                 : "hover:bg-gray-800/30 active:bg-gray-700/40"
             } ${examMode ? "opacity-50 pointer-events-none" : ""}`}
             onClick={() => {
-              if (!examMode) {
-                toggleExpand(currentPath);
-              }
-            }}
-            onTouchStart={() => {}}
-            onTouchEnd={(e) => {
-              e.preventDefault();
               if (!examMode) {
                 toggleExpand(currentPath);
               }
@@ -1306,23 +1285,12 @@ export default function MobileFileNavigator({
           return (
             <div
               key={index}
-              className={`border-b border-gray-800/50 py-4 px-4 touch-manipulation transition-all duration-200 ${
+              className={`border-b border-gray-800/50 py-4 px-4 transition-all duration-200 ${
                 isSelected
                   ? "bg-indigo-900/30"
                   : "hover:bg-gray-700/50 active:bg-gray-700/40"
               }`}
               onClick={() => {
-                if (!examMode) {
-                  handleFileSelection(
-                    result.paper,
-                    result.path,
-                    result.breadcrumb
-                  );
-                }
-              }}
-              onTouchStart={() => {}}
-              onTouchEnd={(e) => {
-                e.preventDefault();
                 if (!examMode) {
                   handleFileSelection(
                     result.paper,
@@ -1438,13 +1406,13 @@ export default function MobileFileNavigator({
             placeholder="Search papers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg py-3 pl-12 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg py-3 pl-12 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <Search size={20} className="absolute left-4 top-3.5 text-gray-400" />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-4 top-3.5 text-gray-400 hover:text-white touch-manipulation p-1"
+              className="absolute right-4 top-3.5 text-gray-400 hover:text-white p-1"
             >
               <X size={18} />
             </button>
@@ -1455,7 +1423,7 @@ export default function MobileFileNavigator({
         <div className="flex justify-between items-center text-sm text-gray-300">
           <button
             onClick={toggleFilter}
-            className={`flex items-center px-4 py-2 rounded-lg border touch-manipulation transition-all ${
+            className={`flex items-center px-4 py-2 rounded-lg border transition-all ${
               isFiltering
                 ? "text-blue-300 border-blue-500 bg-blue-900/20"
                 : "text-gray-300 border-gray-600 hover:bg-gray-700 active:bg-gray-600"
@@ -1476,7 +1444,7 @@ export default function MobileFileNavigator({
                 <>
                   <button
                     onClick={clearSelections}
-                    className="px-3 py-2 text-sm rounded-lg border border-gray-600 hover:bg-gray-700 active:bg-gray-600 touch-manipulation transition-all"
+                    className="px-3 py-2 text-sm rounded-lg border border-gray-600 hover:bg-gray-700 active:bg-gray-600"
                     title="Clear selections"
                   >
                     Clear ({selectedPapers.length})
@@ -1484,7 +1452,7 @@ export default function MobileFileNavigator({
                   <button
                     onClick={addSelectedPapersToGoals}
                     disabled={isAddingToGoals || selectedPapers.length === 0}
-                    className={`px-3 py-2 text-sm rounded-lg border touch-manipulation transition-all ${
+                    className={`px-3 py-2 text-sm rounded-lg border ${
                       isAddingToGoals
                         ? "bg-blue-800/50 border-blue-700 text-blue-300"
                         : addStatus.show && addStatus.success > 0
