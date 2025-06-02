@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MobileLayout from "../layout/MobileLayout";
-import MobileFileNavigator from "./MobileFileNavigator";
+import FileNavigator from "../FileNavigator";
 import MobilePaperViewer from "./MobilePaperViewer";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import fileStructure from "../../data/fileStructure.json";
@@ -16,6 +16,7 @@ export default function MobilePastPapersNavigator() {
   const [activeTab, setActiveTab] = useState("qp");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isMobile = useMediaQuery("(max-width: 768px)");
   const isTablet = useMediaQuery("(min-width: 769px) and (max-width: 1024px)");
@@ -106,11 +107,15 @@ export default function MobilePastPapersNavigator() {
       <MobileLayout activePage="papers">
         <div className="flex h-full">
           <div className="w-1/3 border-r border-gray-800">
-            <MobileFileNavigator
+            <FileNavigator
               fileStructure={fileStructure}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               onFileSelect={handleFileSelect}
               activePath={activePath}
-              isLoading={isLoading}
+              examMode={false}
+              isMobile={true}
+              closeModal={null}
             />
           </div>
           <div className="w-2/3">
@@ -130,11 +135,15 @@ export default function MobilePastPapersNavigator() {
   return (
     <MobileLayout activePage="papers">
       {activeView === "navigator" ? (
-        <MobileFileNavigator
+        <FileNavigator
           fileStructure={fileStructure}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
           onFileSelect={handleFileSelect}
           activePath={activePath}
-          isLoading={isLoading}
+          examMode={false}
+          isMobile={true}
+          closeModal={null}
         />
       ) : (
         <MobilePaperViewer

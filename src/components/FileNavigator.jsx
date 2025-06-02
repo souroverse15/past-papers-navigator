@@ -574,30 +574,20 @@ export default function FileNavigator({
     return breadcrumbs;
   };
 
-  const handleFileSelection = (file, path) => {
-    // Debug log to see the file structure
-    console.log("FileNavigator - handleFileSelection:", {
-      file: file,
-      path: path,
-      fileKeys: Object.keys(file),
-      qpUrl: file.qp ? file.qp.substring(0, 50) + "..." : "No QP URL",
-    });
+  const handleFileSelection = (file, path, breadcrumb = null) => {
+    // Update breadcrumbs if not provided from search
+    let finalBreadcrumb = breadcrumb;
+    if (!finalBreadcrumb) {
+      finalBreadcrumb = updateBreadcrumbs(file, path);
+    }
 
-    // Add path to file object if not present
-    const fileWithPath = {
-      ...file,
-      path: path, // Ensure path is included with the file
-    };
-
-    // Create breadcrumbs
-    const breadcrumbs = updateBreadcrumbs(fileWithPath, path);
-
-    // Call the parent component's onFileSelect function with updated file
-    onFileSelect(fileWithPath, path, breadcrumbs);
-
-    if (isMobile) {
+    // Close mobile modal if it exists
+    if (isMobile && closeModal) {
       closeModal();
     }
+
+    // Call the parent's file selection handler
+    onFileSelect(file, path, finalBreadcrumb);
   };
 
   // Use filtered structure if filtering is enabled, otherwise use the original
@@ -1234,10 +1224,10 @@ export default function FileNavigator({
         return (
           <div
             key={currentPath}
-            className={`pl-4 py-2 text-sm cursor-pointer hover:bg-gray-700/40 transition-all select-none rounded-md my-0.5 ${
+            className={`border-b border-gray-800/50 py-3 sm:py-2 px-4 flex items-center justify-between transition-all duration-200 ${
               activePath === currentPath
-                ? "bg-blue-900/40 text-blue-300 border-l-2 border-blue-400"
-                : "border-l border-transparent"
+                ? "bg-gray-800/60"
+                : "hover:bg-gray-800/30 active:bg-gray-700/40"
             } ${examMode ? "opacity-50 pointer-events-none" : ""} ${
               isSelected ? "bg-indigo-900/30" : ""
             }`}
@@ -1247,66 +1237,73 @@ export default function FileNavigator({
               }
             }}
           >
-            <div className="flex items-center">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
               {/* Only show checkbox if user is logged in and paper is not already in goals */}
               {!isGoal && user && (
-                <div
-                  className="mr-2 p-1"
+                <button
+                  type="button"
+                  className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                   onClick={(e) =>
                     togglePaperSelection(e, { ...node[key], path: currentPath })
                   }
+                  aria-label={`Select paper ${node[key].name || key}`}
                 >
                   <div
-                    className={`w-4 h-4 flex items-center justify-center rounded border ${
+                    className={`w-4 sm:w-5 h-4 sm:h-5 flex items-center justify-center rounded border transition-colors ${
                       isSelected
                         ? "bg-blue-500 border-blue-600"
-                        : "border-gray-600 bg-gray-800"
+                        : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                     }`}
                   >
-                    {isSelected && <Check size={12} className="text-white" />}
+                    {isSelected && (
+                      <Check size={isMobile ? 14 : 12} className="text-white" />
+                    )}
                   </div>
-                </div>
+                </button>
               )}
-              {/* Add left margin if no checkbox is shown */}
-              {isGoal && <div className="w-6 mr-2"></div>}
-              <FileText
-                size={16}
-                className="mr-2 flex-shrink-0 text-gray-400"
-              />
-              <span className="truncate">{node[key].name || key}</span>
 
-              {/* Display completion indicator with score-based styling */}
-              {isCompleted && (
-                <div
-                  className="ml-1.5 flex items-center"
-                  title={`Mock completed with score: ${Math.round(score)}%`}
-                >
+              {/* Add left margin if no checkbox is shown */}
+              {isGoal && <div className="w-4 sm:w-5 flex-shrink-0"></div>}
+
+              <FileText
+                size={isMobile ? 18 : 16}
+                className="text-gray-400 flex-shrink-0"
+              />
+
+              <div className="flex-1 min-w-0">
+                <span className="text-white text-sm sm:text-base font-medium truncate block">
+                  {node[key].name || key}
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                {/* Display completion indicator with score-based styling */}
+                {isCompleted && (
                   <span
-                    className={`text-xs ml-1 px-1.5 py-0.5 rounded ${
+                    className={`text-xs px-2 py-1 rounded-full ${
                       score >= 70
                         ? "bg-green-900/40 text-green-400 border border-green-700/50"
                         : score >= 40
                         ? "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50"
                         : "bg-red-900/40 text-red-400 border border-red-700/50"
                     }`}
+                    title={`Mock completed with score: ${Math.round(score)}%`}
                   >
                     {Math.round(score)}%
                   </span>
-                </div>
-              )}
+                )}
 
-              {/* Display goal indicator with proper icon */}
-              {isGoal && !isCompleted && (
-                <div
-                  className="ml-1.5 flex items-center group relative"
-                  title="This paper is in your study goals - click to view your dashboard"
-                >
-                  <Target size={14} className="text-blue-400" />
-                  <span className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-800 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                    In Study Goals
-                  </span>
-                </div>
-              )}
+                {/* Display goal indicator with proper icon */}
+                {isGoal && !isCompleted && (
+                  <Target
+                    size={16}
+                    className="text-blue-400"
+                    title="In Study Goals"
+                  />
+                )}
+
+                <ChevronRight size={16} className="text-gray-500" />
+              </div>
             </div>
           </div>
         );
@@ -1320,7 +1317,7 @@ export default function FileNavigator({
           : node[key];
 
         return (
-          <div key={currentPath} className="ml-4 border-l border-gray-700/50">
+          <div key={currentPath} className="border-l border-gray-700/50">
             {papersToRender.map((paper, index) => {
               // Create a unique key that combines path and index
               const paperPath = `${currentPath}/${paper.name}`;
@@ -1336,10 +1333,10 @@ export default function FileNavigator({
               return (
                 <div
                   key={uniqueKey}
-                  className={`pl-4 py-2 text-sm cursor-pointer hover:bg-gray-700/40 transition-all select-none rounded-md my-0.5 ${
+                  className={`border-b border-gray-800/50 py-3 sm:py-2 px-4 ml-4 flex items-center justify-between transition-all duration-200 ${
                     activePath === paperPath
-                      ? "bg-blue-900/40 text-blue-300 border-l-2 border-blue-400"
-                      : "border-l border-transparent"
+                      ? "bg-gray-800/60"
+                      : "hover:bg-gray-800/30 active:bg-gray-700/40"
                   } ${examMode ? "opacity-50 pointer-events-none" : ""} ${
                     isSelected ? "bg-indigo-900/30" : ""
                   }`}
@@ -1349,79 +1346,87 @@ export default function FileNavigator({
                     }
                   }}
                 >
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {/* Only show checkbox if user is logged in and paper is not already in goals */}
                     {!isGoal && user && (
-                      <div
-                        className="mr-2 p-1"
+                      <button
+                        type="button"
+                        className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                         onClick={(e) =>
                           togglePaperSelection(e, { ...paper, path: paperPath })
                         }
+                        aria-label={`Select paper ${paper.name}`}
                       >
                         <div
-                          className={`w-4 h-4 flex items-center justify-center rounded border ${
+                          className={`w-4 sm:w-5 h-4 sm:h-5 flex items-center justify-center rounded border transition-colors ${
                             isSelected
                               ? "bg-blue-500 border-blue-600"
-                              : "border-gray-600 bg-gray-800"
+                              : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                           }`}
                         >
                           {isSelected && (
-                            <Check size={12} className="text-white" />
+                            <Check
+                              size={isMobile ? 14 : 12}
+                              className="text-white"
+                            />
                           )}
                         </div>
-                      </div>
+                      </button>
                     )}
-                    {/* Add left margin if no checkbox is shown */}
-                    {isGoal && <div className="w-6 mr-2"></div>}
-                    <FileText
-                      size={16}
-                      className="mr-2 flex-shrink-0 text-gray-400"
-                    />
-                    <span className="truncate">{paper.name}</span>
 
-                    {/* Display completion indicator with score-based styling */}
-                    {isCompleted && (
-                      <div
-                        className="ml-1.5 flex items-center"
-                        title={`Mock completed with score: ${Math.round(
-                          score
-                        )}%`}
-                      >
+                    {/* Add left margin if no checkbox is shown */}
+                    {isGoal && <div className="w-4 sm:w-5 flex-shrink-0"></div>}
+
+                    <FileText
+                      size={isMobile ? 18 : 16}
+                      className="text-gray-400 flex-shrink-0"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      <span className="text-white text-sm sm:text-base font-medium truncate block">
+                        {paper.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      {/* Display completion indicator with score-based styling */}
+                      {isCompleted && (
                         <span
-                          className={`text-xs ml-1 px-1.5 py-0.5 rounded ${
+                          className={`text-xs px-2 py-1 rounded-full ${
                             score >= 70
                               ? "bg-green-900/40 text-green-400 border border-green-700/50"
                               : score >= 40
                               ? "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50"
                               : "bg-red-900/40 text-red-400 border border-red-700/50"
                           }`}
+                          title={`Mock completed with score: ${Math.round(
+                            score
+                          )}%`}
                         >
                           {Math.round(score)}%
                         </span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Display paper has SpecimenPaper icon */}
-                    {paper.sp && (
-                      <Star
-                        size={14}
-                        className="ml-1.5 text-yellow-400"
-                        fill="currentColor"
-                      />
-                    )}
+                      {/* Display paper has SpecimenPaper icon */}
+                      {paper.sp && (
+                        <Star
+                          size={16}
+                          className="text-yellow-400"
+                          fill="currentColor"
+                        />
+                      )}
 
-                    {/* Display goal indicator with proper icon */}
-                    {isGoal && !isCompleted && (
-                      <div
-                        className="ml-1.5 flex items-center group relative"
-                        title="This paper is in your study goals - click to view your dashboard"
-                      >
-                        <Target size={14} className="text-blue-400" />
-                        <span className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-800 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                          In Study Goals
-                        </span>
-                      </div>
-                    )}
+                      {/* Display goal indicator with proper icon */}
+                      {isGoal && !isCompleted && (
+                        <Target
+                          size={16}
+                          className="text-blue-400"
+                          title="In Study Goals"
+                        />
+                      )}
+
+                      <ChevronRight size={16} className="text-gray-500" />
+                    </div>
                   </div>
                 </div>
               );
@@ -1434,8 +1439,10 @@ export default function FileNavigator({
       return (
         <div key={currentPath}>
           <div
-            className={`px-3 py-2 cursor-pointer hover:bg-gray-700/40 rounded-md transition-colors flex items-center select-none ${
-              isActive ? "text-blue-300" : "text-gray-200"
+            className={`border-b border-gray-800/50 py-4 sm:py-3 px-4 flex items-center justify-between transition-all duration-200 ${
+              isActive
+                ? "bg-gray-800/60"
+                : "hover:bg-gray-800/30 active:bg-gray-700/40"
             } ${examMode ? "opacity-50 pointer-events-none" : ""}`}
             onClick={() => {
               if (!examMode) {
@@ -1443,77 +1450,113 @@ export default function FileNavigator({
               }
             }}
           >
-            {/* Add checkbox or goal icon for year folders (likely 4-digit year) */}
-            {!examMode && user && key.match(/^20\d{2}$/) && (
-              <>
-                {areAllPapersInYearInGoals(currentPath, node[key]) ? (
-                  <div className="mr-2 p-1 flex items-center group relative">
-                    <Target size={14} className="text-blue-400" />
-                    <span className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-800 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                      All papers in goals
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    className="mr-2 p-1"
-                    onClick={(e) =>
-                      toggleYearSelection(e, currentPath, node[key])
-                    }
-                  >
-                    <div
-                      className={`w-4 h-4 flex items-center justify-center rounded border ${
-                        hasSelectedPapersInYear(currentPath, node[key])
-                          ? "bg-blue-500 border-blue-600"
-                          : "border-gray-600 bg-gray-800 hover:border-blue-400"
-                      }`}
-                    >
-                      {hasSelectedPapersInYear(currentPath, node[key]) && (
-                        <Check size={12} className="text-white" />
-                      )}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Add checkbox or goal icon for session folders */}
-            {!examMode &&
-              user &&
-              isSessionFolder(key) &&
-              !key.match(/^20\d{2}$/) && (
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              {/* Add checkbox or goal icon for year folders (likely 4-digit year) */}
+              {!examMode && user && key.match(/^20\d{2}$/) && (
                 <>
-                  {areAllPapersInSessionInGoals(currentPath, node[key]) ? (
-                    <div className="mr-2 p-1 flex items-center group relative">
-                      <Target size={14} className="text-blue-400" />
-                      <span className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-800 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                        All papers in goals
-                      </span>
+                  {areAllPapersInYearInGoals(currentPath, node[key]) ? (
+                    <div className="flex-shrink-0 p-1">
+                      <Target
+                        size={16}
+                        className="text-blue-400"
+                        title="All papers in goals"
+                      />
                     </div>
                   ) : (
-                    <div
-                      className="mr-2 p-1"
+                    <button
+                      type="button"
+                      className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                       onClick={(e) =>
-                        toggleSessionSelection(e, currentPath, node[key])
+                        toggleYearSelection(e, currentPath, node[key])
                       }
+                      aria-label={`Select all papers in year ${key}`}
                     >
                       <div
-                        className={`w-4 h-4 flex items-center justify-center rounded border ${
-                          hasSelectedPapersInSession(currentPath, node[key])
+                        className={`w-4 sm:w-5 h-4 sm:h-5 flex items-center justify-center rounded border transition-colors ${
+                          hasSelectedPapersInYear(currentPath, node[key])
                             ? "bg-blue-500 border-blue-600"
-                            : "border-gray-600 bg-gray-800 hover:border-blue-400"
+                            : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
                         }`}
                       >
-                        {hasSelectedPapersInSession(currentPath, node[key]) && (
-                          <Check size={12} className="text-white" />
+                        {hasSelectedPapersInYear(currentPath, node[key]) && (
+                          <Check
+                            size={isMobile ? 14 : 12}
+                            className="text-white"
+                          />
                         )}
                       </div>
-                    </div>
+                    </button>
                   )}
                 </>
               )}
 
-            {getIcon(key, currentPath)}
-            <span className="truncate font-medium">{key}</span>
+              {/* Add checkbox or goal icon for session folders */}
+              {!examMode &&
+                user &&
+                isSessionFolder(key) &&
+                !key.match(/^20\d{2}$/) && (
+                  <>
+                    {areAllPapersInSessionInGoals(currentPath, node[key]) ? (
+                      <div className="flex-shrink-0 p-1">
+                        <Target
+                          size={16}
+                          className="text-blue-400"
+                          title="All papers in goals"
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="flex-shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                        onClick={(e) =>
+                          toggleSessionSelection(e, currentPath, node[key])
+                        }
+                        aria-label={`Select all papers in session ${key}`}
+                      >
+                        <div
+                          className={`w-4 sm:w-5 h-4 sm:h-5 flex items-center justify-center rounded border transition-colors ${
+                            hasSelectedPapersInSession(currentPath, node[key])
+                              ? "bg-blue-500 border-blue-600"
+                              : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
+                          }`}
+                        >
+                          {hasSelectedPapersInSession(
+                            currentPath,
+                            node[key]
+                          ) && (
+                            <Check
+                              size={isMobile ? 14 : 12}
+                              className="text-white"
+                            />
+                          )}
+                        </div>
+                      </button>
+                    )}
+                  </>
+                )}
+
+              {getIcon(key, currentPath)}
+
+              <div className="flex-1 min-w-0">
+                <span className="text-white text-sm sm:text-base font-semibold truncate block">
+                  {key}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0">
+              {expanded[currentPath] ? (
+                <ChevronDown
+                  size={isMobile ? 20 : 18}
+                  className="text-gray-400"
+                />
+              ) : (
+                <ChevronRight
+                  size={isMobile ? 20 : 18}
+                  className="text-gray-400"
+                />
+              )}
+            </div>
           </div>
           {expanded[currentPath] && (
             <div className="ml-4">{renderTree(node[key], currentPath)}</div>
@@ -1526,16 +1569,21 @@ export default function FileNavigator({
   const renderSearchResults = () => {
     if (searchResults.length === 0) {
       return (
-        <div className="text-center py-6 text-gray-400">
-          <FileQuestion size={24} className="mx-auto mb-2 text-gray-500" />
-          <p className="text-sm">No papers found matching '{searchQuery}'</p>
+        <div className="text-center py-8 text-gray-400">
+          <FileQuestion
+            size={isMobile ? 32 : 28}
+            className="mx-auto mb-3 text-gray-500"
+          />
+          <p className="text-sm sm:text-base">
+            No papers found matching '{searchQuery}'
+          </p>
         </div>
       );
     }
 
     return (
-      <div className="space-y-1 p-2">
-        <h3 className="text-xs uppercase text-blue-400 font-semibold mb-2 tracking-wider px-2">
+      <div className="space-y-1">
+        <h3 className="text-xs sm:text-sm uppercase text-blue-400 font-semibold mb-4 tracking-wider px-4 pt-2">
           Search Results ({searchResults.length})
         </h3>
 
@@ -1551,8 +1599,10 @@ export default function FileNavigator({
           return (
             <div
               key={index}
-              className={`flex items-start p-2 hover:bg-gray-700/50 rounded-md cursor-pointer ${
-                isSelected ? "bg-indigo-900/30" : ""
+              className={`border-b border-gray-800/50 py-4 sm:py-3 px-4 transition-all duration-200 ${
+                isSelected
+                  ? "bg-indigo-900/30"
+                  : "hover:bg-gray-700/50 active:bg-gray-700/40"
               }`}
               onClick={() => {
                 if (!examMode) {
@@ -1564,77 +1614,83 @@ export default function FileNavigator({
                 }
               }}
             >
-              {/* Only show checkbox if user is logged in and paper is not already in goals */}
-              {!isGoal && user && (
-                <div
-                  className="mt-0.5 mr-2 p-1"
-                  onClick={(e) =>
-                    togglePaperSelection(e, {
-                      ...result.paper,
-                      path: result.path,
-                    })
-                  }
-                >
-                  <div
-                    className={`w-4 h-4 flex items-center justify-center rounded border ${
-                      isSelected
-                        ? "bg-blue-500 border-blue-600"
-                        : "border-gray-600 bg-gray-800"
-                    }`}
+              <div className="flex items-start space-x-3">
+                {/* Only show checkbox if user is logged in and paper is not already in goals */}
+                {!isGoal && user && (
+                  <button
+                    type="button"
+                    className="flex-shrink-0 mt-1 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                    onClick={(e) =>
+                      togglePaperSelection(e, {
+                        ...result.paper,
+                        path: result.path,
+                      })
+                    }
+                    aria-label={`Select paper ${result.paper.name}`}
                   >
-                    {isSelected && <Check size={12} className="text-white" />}
+                    <div
+                      className={`w-4 sm:w-5 h-4 sm:h-5 flex items-center justify-center rounded border transition-colors ${
+                        isSelected
+                          ? "bg-blue-500 border-blue-600"
+                          : "border-gray-600 bg-gray-800 group-hover:border-blue-400"
+                      }`}
+                    >
+                      {isSelected && (
+                        <Check
+                          size={isMobile ? 14 : 12}
+                          className="text-white"
+                        />
+                      )}
+                    </div>
+                  </button>
+                )}
+                {/* Add left margin if no checkbox is shown */}
+                {isGoal && <div className="w-4 sm:w-5 flex-shrink-0"></div>}
+
+                <FileText
+                  size={isMobile ? 18 : 16}
+                  className="text-gray-400 flex-shrink-0 mt-0.5"
+                />
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white text-sm sm:text-base font-medium truncate">
+                      {result.paper.name}
+                    </span>
+
+                    <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
+                      {/* Display completion indicator with score-based styling */}
+                      {isCompleted && (
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            score >= 70
+                              ? "bg-green-900/40 text-green-400 border border-green-700/50"
+                              : score >= 40
+                              ? "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50"
+                              : "bg-red-900/40 text-red-400 border border-red-700/50"
+                          }`}
+                          title={`Mock completed with score: ${Math.round(
+                            score
+                          )}%`}
+                        >
+                          {Math.round(score)}%
+                        </span>
+                      )}
+
+                      {/* Display goal indicator with proper icon */}
+                      {isGoal && !isCompleted && (
+                        <Target
+                          size={16}
+                          className="text-blue-400"
+                          title="In Study Goals"
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-              {/* Add left margin if no checkbox is shown */}
-              {isGoal && <div className="w-6 mr-2"></div>}
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center">
-                  <FileText
-                    size={14}
-                    className="text-gray-400 flex-shrink-0 mr-1.5"
-                  />
-                  <span className="text-sm font-medium truncate">
-                    {result.paper.name}
-                  </span>
-
-                  {/* Display completion indicator with score-based styling */}
-                  {isCompleted && (
-                    <div
-                      className="ml-1.5 flex items-center"
-                      title={`Mock completed with score: ${Math.round(score)}%`}
-                    >
-                      <span
-                        className={`text-xs ml-1 px-1.5 py-0.5 rounded ${
-                          score >= 70
-                            ? "bg-green-900/40 text-green-400 border border-green-700/50"
-                            : score >= 40
-                            ? "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50"
-                            : "bg-red-900/40 text-red-400 border border-red-700/50"
-                        }`}
-                      >
-                        {Math.round(score)}%
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Display goal indicator with proper icon */}
-                  {isGoal && !isCompleted && (
-                    <div
-                      className="ml-1.5 flex items-center group relative"
-                      title="This paper is in your study goals - click to view your dashboard"
-                    >
-                      <Target size={14} className="text-blue-400" />
-                      <span className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 bg-gray-800 text-xs text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                        In Study Goals
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-xs text-gray-500 mt-0.5 truncate">
-                  {pathLabel}
+                  <div className="text-xs sm:text-sm text-gray-400 truncate">
+                    {pathLabel}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1662,54 +1718,57 @@ export default function FileNavigator({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Search and filter controls */}
-      <div className="p-3 border-b border-gray-700 bg-gray-800/60">
-        <div className="relative mb-2">
+    <div className="flex flex-col h-full bg-gray-900">
+      {/* Search and filter controls - responsive */}
+      <div className="p-3 sm:p-4 border-b border-gray-700 bg-gray-800/60">
+        <div className="relative mb-3">
           <input
             type="text"
             placeholder="Search papers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-md py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full bg-gray-700 text-white placeholder-gray-400 rounded-lg py-2 sm:py-3 pl-10 sm:pl-12 pr-4 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+          <Search
+            size={isMobile ? 20 : 16}
+            className="absolute left-3 sm:left-4 top-2.5 sm:top-3.5 text-gray-400"
+          />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+              className="absolute right-3 sm:right-4 top-2.5 sm:top-3.5 text-gray-400 hover:text-white p-1"
             >
-              <X size={16} />
+              <X size={isMobile ? 18 : 16} />
             </button>
           )}
         </div>
 
-        {/* Subject filtering toggle */}
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-300">
+        {/* Subject filtering toggle - responsive */}
+        <div className="flex justify-between items-center text-xs sm:text-sm text-gray-300">
           <button
             onClick={toggleFilter}
-            className={`flex items-center px-3 py-1.5 rounded border ${
+            className={`flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border transition-all ${
               isFiltering
                 ? "text-blue-300 border-blue-500 bg-blue-900/20"
-                : "text-gray-300 border-gray-600 hover:bg-gray-700"
+                : "text-gray-300 border-gray-600 hover:bg-gray-700 active:bg-gray-600"
             }`}
           >
             {isFiltering ? (
-              <FilterX size={14} className="mr-1.5" />
+              <FilterX size={isMobile ? 16 : 14} className="mr-1.5 sm:mr-2" />
             ) : (
-              <Star size={14} className="mr-1.5" />
+              <Star size={isMobile ? 16 : 14} className="mr-1.5 sm:mr-2" />
             )}
             {isFiltering ? "Show All" : "My Subjects"}
           </button>
 
-          {/* Selection actions buttons */}
+          {/* Selection actions buttons - responsive */}
           {!examMode && user && (
-            <div className="flex space-x-1">
+            <div className="flex space-x-1 sm:space-x-2">
               {selectedPapers.length > 0 && (
                 <>
                   <button
                     onClick={clearSelections}
-                    className="px-2 py-1 text-xs rounded border border-gray-600 hover:bg-gray-700"
+                    className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-gray-600 hover:bg-gray-700 active:bg-gray-600"
                     title="Clear selections"
                   >
                     Clear ({selectedPapers.length})
@@ -1717,25 +1776,25 @@ export default function FileNavigator({
                   <button
                     onClick={addSelectedPapersToGoals}
                     disabled={isAddingToGoals || selectedPapers.length === 0}
-                    className={`px-2 py-1 text-xs rounded border ${
+                    className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border ${
                       isAddingToGoals
                         ? "bg-blue-800/50 border-blue-700 text-blue-300"
                         : addStatus.show && addStatus.success > 0
                         ? "bg-green-800/50 border-green-700 text-green-300"
-                        : "border-gray-600 hover:bg-gray-700"
-                    } flex items-center transition-colors duration-200`}
+                        : "border-gray-600 hover:bg-gray-700 active:bg-gray-600"
+                    } flex items-center`}
                   >
                     {isAddingToGoals ? (
                       <>
-                        <span className="animate-pulse mr-1">
-                          Processing...
-                        </span>
+                        <span className="animate-pulse">Processing...</span>
                       </>
                     ) : addStatus.show && addStatus.success > 0 ? (
                       <>
-                        <CheckCircle2 size={12} className="mr-1" />
-                        Added {addStatus.success} paper
-                        {addStatus.success !== 1 ? "s" : ""}
+                        <CheckCircle2
+                          size={isMobile ? 14 : 12}
+                          className="mr-1"
+                        />
+                        Added {addStatus.success}
                       </>
                     ) : (
                       "Add to Goals"
