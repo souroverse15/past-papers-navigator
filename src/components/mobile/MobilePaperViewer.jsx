@@ -175,7 +175,9 @@ export default function MobilePaperViewer({
   // Get current tab URL
   const getCurrentTabUrl = (tab = activeTab) => {
     if (!selectedFile || !selectedFile[tab]) return null;
-    return selectedFile[tab];
+    return `/pdfjs/web/viewer.html?file=${encodeURIComponent(
+      selectedFile[tab]
+    )}`;
   };
 
   // Download current paper

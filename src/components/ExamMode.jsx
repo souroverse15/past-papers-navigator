@@ -147,7 +147,9 @@ export default function ExamMode({
       <div className="flex-1 p-4 overflow-hidden">
         <div className="bg-gray-800 rounded-xl overflow-hidden h-full">
           <iframe
-            src={selectedFile.qp}
+            src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+              selectedFile.qp
+            )}`}
             className="w-full h-full"
             allow="autoplay"
             allowFullScreen

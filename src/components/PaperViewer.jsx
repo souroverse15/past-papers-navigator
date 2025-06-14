@@ -1004,7 +1004,9 @@ export default function PaperViewer({
             >
               {selectedFile?.qp && (
                 <iframe
-                  src={selectedFile.qp}
+                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                    selectedFile.qp
+                  )}`}
                   className="w-full h-full border-0"
                   title="Question Paper"
                   style={{ backgroundColor: "white" }}
@@ -1029,7 +1031,9 @@ export default function PaperViewer({
             >
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
-                  src={selectedFile.ms}
+                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                    selectedFile.ms
+                  )}`}
                   className="w-full h-full border-0"
                   title="Mark Scheme"
                   style={{ backgroundColor: "white" }}
@@ -1037,7 +1041,9 @@ export default function PaperViewer({
               )}
               {activeTab === "sp" && selectedFile?.sp && (
                 <iframe
-                  src={selectedFile.sp}
+                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                    selectedFile.sp
+                  )}`}
                   className="w-full h-full border-0"
                   title="Solved Paper"
                   style={{ backgroundColor: "white" }}
@@ -1045,7 +1051,9 @@ export default function PaperViewer({
               )}
               {activeTab === "in" && selectedFile?.in && (
                 <iframe
-                  src={selectedFile.in}
+                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                    selectedFile.in
+                  )}`}
                   className="w-full h-full border-0"
                   title="Booklet"
                   style={{ backgroundColor: "white" }}
@@ -1058,7 +1066,9 @@ export default function PaperViewer({
           <div className="h-full">
             {activeTab === "qp" && selectedFile?.qp && (
               <iframe
-                src={selectedFile.qp}
+                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                  selectedFile.qp
+                )}`}
                 className="w-full h-full border-0"
                 title="Question Paper"
                 style={{ backgroundColor: "white" }}
@@ -1066,7 +1076,9 @@ export default function PaperViewer({
             )}
             {activeTab === "ms" && selectedFile?.ms && (
               <iframe
-                src={selectedFile.ms}
+                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                  selectedFile.ms
+                )}`}
                 className="w-full h-full border-0"
                 title="Mark Scheme"
                 style={{ backgroundColor: "white" }}
@@ -1074,7 +1086,9 @@ export default function PaperViewer({
             )}
             {activeTab === "sp" && selectedFile?.sp && (
               <iframe
-                src={selectedFile.sp}
+                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                  selectedFile.sp
+                )}`}
                 className="w-full h-full border-0"
                 title="Solved Paper"
                 style={{ backgroundColor: "white" }}
@@ -1082,7 +1096,9 @@ export default function PaperViewer({
             )}
             {activeTab === "in" && selectedFile?.in && (
               <iframe
-                src={selectedFile.in}
+                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
+                  selectedFile.in
+                )}`}
                 className="w-full h-full border-0"
                 title="Booklet"
                 style={{ backgroundColor: "white" }}
