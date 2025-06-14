@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { Clock, Lock, AlertTriangle, ShieldAlert, Clock3 } from "lucide-react";
 import Timer from "./Timer";
+import { getPDFViewerUrl } from "../config/api";
 
 export default function ExamMode({
   selectedFile,
@@ -147,9 +148,7 @@ export default function ExamMode({
       <div className="flex-1 p-4 overflow-hidden">
         <div className="bg-gray-800 rounded-xl overflow-hidden h-full">
           <iframe
-            src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-              selectedFile.qp
-            )}`}
+            src={getPDFViewerUrl(selectedFile.qp)}
             className="w-full h-full"
             allow="autoplay"
             allowFullScreen

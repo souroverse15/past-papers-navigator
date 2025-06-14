@@ -27,6 +27,7 @@ import {
   updateMockExamByPath,
   autoCompleteGoalWhenMockCompleted,
 } from "../firebase/userService";
+import { getPDFViewerUrl } from "../config/api";
 
 // Helper function to extract subject from paper name or path
 const extractSubject = (paperName, activePath = "") => {
@@ -1004,9 +1005,7 @@ export default function PaperViewer({
             >
               {selectedFile?.qp && (
                 <iframe
-                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                    selectedFile.qp
-                  )}`}
+                  src={getPDFViewerUrl(selectedFile.qp)}
                   className="w-full h-full border-0"
                   title="Question Paper"
                   style={{ backgroundColor: "white" }}
@@ -1031,9 +1030,7 @@ export default function PaperViewer({
             >
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
-                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                    selectedFile.ms
-                  )}`}
+                  src={getPDFViewerUrl(selectedFile.ms)}
                   className="w-full h-full border-0"
                   title="Mark Scheme"
                   style={{ backgroundColor: "white" }}
@@ -1041,9 +1038,7 @@ export default function PaperViewer({
               )}
               {activeTab === "sp" && selectedFile?.sp && (
                 <iframe
-                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                    selectedFile.sp
-                  )}`}
+                  src={getPDFViewerUrl(selectedFile.sp)}
                   className="w-full h-full border-0"
                   title="Solved Paper"
                   style={{ backgroundColor: "white" }}
@@ -1051,9 +1046,7 @@ export default function PaperViewer({
               )}
               {activeTab === "in" && selectedFile?.in && (
                 <iframe
-                  src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                    selectedFile.in
-                  )}`}
+                  src={getPDFViewerUrl(selectedFile.in)}
                   className="w-full h-full border-0"
                   title="Booklet"
                   style={{ backgroundColor: "white" }}
@@ -1066,9 +1059,7 @@ export default function PaperViewer({
           <div className="h-full">
             {activeTab === "qp" && selectedFile?.qp && (
               <iframe
-                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                  selectedFile.qp
-                )}`}
+                src={getPDFViewerUrl(selectedFile.qp)}
                 className="w-full h-full border-0"
                 title="Question Paper"
                 style={{ backgroundColor: "white" }}
@@ -1076,9 +1067,7 @@ export default function PaperViewer({
             )}
             {activeTab === "ms" && selectedFile?.ms && (
               <iframe
-                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                  selectedFile.ms
-                )}`}
+                src={getPDFViewerUrl(selectedFile.ms)}
                 className="w-full h-full border-0"
                 title="Mark Scheme"
                 style={{ backgroundColor: "white" }}
@@ -1086,9 +1075,7 @@ export default function PaperViewer({
             )}
             {activeTab === "sp" && selectedFile?.sp && (
               <iframe
-                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                  selectedFile.sp
-                )}`}
+                src={getPDFViewerUrl(selectedFile.sp)}
                 className="w-full h-full border-0"
                 title="Solved Paper"
                 style={{ backgroundColor: "white" }}
@@ -1096,9 +1083,7 @@ export default function PaperViewer({
             )}
             {activeTab === "in" && selectedFile?.in && (
               <iframe
-                src={`/pdfjs/web/viewer.html?file=${encodeURIComponent(
-                  selectedFile.in
-                )}`}
+                src={getPDFViewerUrl(selectedFile.in)}
                 className="w-full h-full border-0"
                 title="Booklet"
                 style={{ backgroundColor: "white" }}

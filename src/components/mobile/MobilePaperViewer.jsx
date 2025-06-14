@@ -13,8 +13,10 @@ import {
   ZoomIn,
   ZoomOut,
   Minimize2,
+  Split,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { getPDFViewerUrl } from "../config/api";
 
 /**
  * Enhanced MobilePaperViewer - A dedicated component for viewing papers on mobile devices
@@ -175,9 +177,7 @@ export default function MobilePaperViewer({
   // Get current tab URL
   const getCurrentTabUrl = (tab = activeTab) => {
     if (!selectedFile || !selectedFile[tab]) return null;
-    return `/pdfjs/web/viewer.html?file=${encodeURIComponent(
-      selectedFile[tab]
-    )}`;
+    return getPDFViewerUrl(selectedFile[tab]);
   };
 
   // Download current paper
