@@ -999,9 +999,8 @@ export default function PaperViewer({
           <div className="flex h-full">
             {/* Left panel (Question Paper) */}
             <div
-              className={`${
-                effectiveIsMobile ? "w-full" : `w-[${leftPanelWidth}%]`
-              } h-full`}
+              className={`${effectiveIsMobile ? "w-full" : ""} h-full`}
+              style={effectiveIsMobile ? {} : { width: `${leftPanelWidth}%` }}
             >
               {selectedFile?.qp && (
                 <iframe
@@ -1023,9 +1022,10 @@ export default function PaperViewer({
 
             {/* Right panel */}
             <div
-              className={`${
-                effectiveIsMobile ? "w-full" : `w-[${100 - leftPanelWidth}%]`
-              } h-full`}
+              className={`${effectiveIsMobile ? "w-full" : ""} h-full`}
+              style={
+                effectiveIsMobile ? {} : { width: `${100 - leftPanelWidth}%` }
+              }
             >
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
