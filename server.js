@@ -1,8 +1,12 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const https = require("https");
-const http = require("http");
+import express from "express";
+import cors from "cors";
+import path from "path";
+import https from "https";
+import http from "http";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +19,7 @@ app.use(
       "http://localhost:5174",
       "http://localhost:5175",
       "http://localhost:5176",
+      "http://localhost:5177",
       "http://localhost:3000",
     ],
     credentials: true,
@@ -135,4 +140,4 @@ app.listen(PORT, () => {
   );
 });
 
-module.exports = app;
+export default app;
