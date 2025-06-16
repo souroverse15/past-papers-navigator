@@ -56,10 +56,13 @@ app.get("/api/pdf-proxy", async (req, res) => {
 
     // Make request to fetch the PDF
     const request = protocol.get(downloadUrl, (response) => {
-      // Handle redirects
-      if (response.statusCode === 302 || response.statusCode === 301) {
+      // Handle redirects (301, 302, 303, 307, 308)
+      if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
         const redirectUrl = response.headers.location;
-        console.log("Following redirect to:", redirectUrl);
+        console.log(
+          `Following ${response.statusCode} redirect to:`,
+          redirectUrl
+        );
 
         const redirectProtocol = redirectUrl.startsWith("https:")
           ? https
@@ -67,6 +70,50 @@ app.get("/api/pdf-proxy", async (req, res) => {
         const redirectRequest = redirectProtocol.get(
           redirectUrl,
           (redirectResponse) => {
+            // Handle nested redirects
+            if (
+              [301, 302, 303, 307, 308].includes(redirectResponse.statusCode)
+            ) {
+              const nestedRedirectUrl = redirectResponse.headers.location;
+              console.log(
+                `Following nested ${redirectResponse.statusCode} redirect to:`,
+                nestedRedirectUrl
+              );
+
+              const nestedProtocol = nestedRedirectUrl.startsWith("https:")
+                ? https
+                : http;
+              const nestedRequest = nestedProtocol.get(
+                nestedRedirectUrl,
+                (nestedResponse) => {
+                  // Set proper headers for PDF.js
+                  res.setHeader("Content-Type", "application/pdf");
+                  res.setHeader("Access-Control-Allow-Origin", "*");
+                  res.setHeader(
+                    "Access-Control-Allow-Methods",
+                    "GET, POST, PUT, DELETE, OPTIONS"
+                  );
+                  res.setHeader(
+                    "Access-Control-Allow-Headers",
+                    "Content-Type, Authorization"
+                  );
+                  res.setHeader("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+
+                  // Pipe the PDF data to the response
+                  nestedResponse.pipe(res);
+                }
+              );
+
+              nestedRequest.on("error", (error) => {
+                console.error("Error fetching nested redirected PDF:", error);
+                res
+                  .status(500)
+                  .json({ error: "Failed to fetch PDF from nested redirect" });
+              });
+
+              return;
+            }
+
             // Set proper headers for PDF.js
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader("Access-Control-Allow-Origin", "*");
@@ -90,6 +137,18 @@ app.get("/api/pdf-proxy", async (req, res) => {
           res.status(500).json({ error: "Failed to fetch PDF from redirect" });
         });
 
+        return;
+      }
+
+      // Check if response is successful
+      if (response.statusCode !== 200) {
+        console.error(
+          `HTTP ${response.statusCode} error for URL:`,
+          downloadUrl
+        );
+        res.status(response.statusCode).json({
+          error: `Failed to fetch PDF: HTTP ${response.statusCode}`,
+        });
         return;
       }
 
