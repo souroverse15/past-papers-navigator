@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Clock, Lock, AlertTriangle, ShieldAlert, Clock3 } from "lucide-react";
 import Timer from "./Timer";
 import { getPDFViewerUrl } from "../config/api";
@@ -10,6 +10,80 @@ export default function ExamMode({
   handleExamModeChange,
   setIsFullscreen,
 }) {
+  // Loading states for PDF
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [pdfError, setPdfError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Reset loading state when selectedFile changes
+  useEffect(() => {
+    if (selectedFile) {
+      setPdfLoading(true);
+      setPdfError(null);
+      setRetryCount(0);
+    }
+  }, [selectedFile]);
+
+  // Handle iframe load events
+  const handlePdfLoad = () => {
+    setPdfLoading(false);
+    setPdfError(null);
+    setRetryCount(0);
+  };
+
+  const handlePdfError = () => {
+    setPdfLoading(false);
+    if (retryCount < 2) {
+      setPdfError(`Loading Question Paper... Retry ${retryCount + 1}/3`);
+      setRetryCount((prev) => prev + 1);
+      setTimeout(() => {
+        setPdfLoading(true);
+        setPdfError(null);
+      }, 2000);
+    } else {
+      setPdfError("Failed to load Question Paper. Please refresh the page.");
+    }
+  };
+
+  // Manual retry function
+  const retryPdf = () => {
+    setPdfLoading(true);
+    setPdfError(null);
+    setRetryCount(0);
+  };
+
+  // Loading component
+  const LoadingIndicator = ({ error, onRetry }) => (
+    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-10">
+      {error ? (
+        <div className="text-center p-6">
+          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-300 mb-2">Loading Question Paper...</p>
+          <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-sm text-gray-400 mt-2">
+            This may take a few moments
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   // Request fullscreen when component mounts
   useEffect(() => {
     if (examContainerRef.current) {
@@ -146,7 +220,10 @@ export default function ExamMode({
 
       {/* PDF Viewer */}
       <div className="flex-1 p-4 overflow-hidden">
-        <div className="bg-gray-800 rounded-xl overflow-hidden h-full">
+        <div className="bg-gray-800 rounded-xl overflow-hidden h-full relative">
+          {pdfLoading && (
+            <LoadingIndicator error={pdfError} onRetry={retryPdf} />
+          )}
           <iframe
             src={getPDFViewerUrl(selectedFile.qp)}
             className="w-full h-full"
@@ -159,6 +236,8 @@ export default function ExamMode({
               display: "block",
               border: "none",
             }}
+            onLoad={handlePdfLoad}
+            onError={handlePdfError}
           />
         </div>
       </div>

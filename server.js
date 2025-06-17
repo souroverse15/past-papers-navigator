@@ -37,6 +37,8 @@ app.get("/api/pdf-proxy", async (req, res) => {
     return res.status(400).json({ error: "URL parameter is required" });
   }
 
+  let responseStarted = false;
+
   try {
     console.log("Proxying PDF request for:", url);
 
@@ -86,6 +88,9 @@ app.get("/api/pdf-proxy", async (req, res) => {
               const nestedRequest = nestedProtocol.get(
                 nestedRedirectUrl,
                 (nestedResponse) => {
+                  if (responseStarted) return;
+                  responseStarted = true;
+
                   // Set proper headers for PDF.js
                   res.setHeader("Content-Type", "application/pdf");
                   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -106,13 +111,33 @@ app.get("/api/pdf-proxy", async (req, res) => {
 
               nestedRequest.on("error", (error) => {
                 console.error("Error fetching nested redirected PDF:", error);
-                res
-                  .status(500)
-                  .json({ error: "Failed to fetch PDF from nested redirect" });
+                if (!responseStarted) {
+                  responseStarted = true;
+                  res
+                    .status(500)
+                    .json({
+                      error: "Failed to fetch PDF from nested redirect",
+                    });
+                }
+              });
+
+              nestedRequest.setTimeout(30000, () => {
+                console.error(
+                  "Nested request timeout for URL:",
+                  nestedRedirectUrl
+                );
+                if (!responseStarted) {
+                  responseStarted = true;
+                  res.status(504).json({ error: "Request timeout" });
+                }
+                nestedRequest.destroy();
               });
 
               return;
             }
+
+            if (responseStarted) return;
+            responseStarted = true;
 
             // Set proper headers for PDF.js
             res.setHeader("Content-Type", "application/pdf");
@@ -134,7 +159,21 @@ app.get("/api/pdf-proxy", async (req, res) => {
 
         redirectRequest.on("error", (error) => {
           console.error("Error fetching redirected PDF:", error);
-          res.status(500).json({ error: "Failed to fetch PDF from redirect" });
+          if (!responseStarted) {
+            responseStarted = true;
+            res
+              .status(500)
+              .json({ error: "Failed to fetch PDF from redirect" });
+          }
+        });
+
+        redirectRequest.setTimeout(30000, () => {
+          console.error("Redirect request timeout for URL:", redirectUrl);
+          if (!responseStarted) {
+            responseStarted = true;
+            res.status(504).json({ error: "Request timeout" });
+          }
+          redirectRequest.destroy();
         });
 
         return;
@@ -146,11 +185,17 @@ app.get("/api/pdf-proxy", async (req, res) => {
           `HTTP ${response.statusCode} error for URL:`,
           downloadUrl
         );
-        res.status(response.statusCode).json({
-          error: `Failed to fetch PDF: HTTP ${response.statusCode}`,
-        });
+        if (!responseStarted) {
+          responseStarted = true;
+          res.status(response.statusCode).json({
+            error: `Failed to fetch PDF: HTTP ${response.statusCode}`,
+          });
+        }
         return;
       }
+
+      if (responseStarted) return;
+      responseStarted = true;
 
       // Set proper headers for PDF.js
       res.setHeader("Content-Type", "application/pdf");
@@ -171,16 +216,26 @@ app.get("/api/pdf-proxy", async (req, res) => {
 
     request.on("error", (error) => {
       console.error("Error fetching PDF:", error);
-      res.status(500).json({ error: "Failed to fetch PDF" });
+      if (!responseStarted) {
+        responseStarted = true;
+        res.status(500).json({ error: "Failed to fetch PDF" });
+      }
     });
 
     request.setTimeout(30000, () => {
       console.error("Request timeout for URL:", url);
-      res.status(504).json({ error: "Request timeout" });
+      if (!responseStarted) {
+        responseStarted = true;
+        res.status(504).json({ error: "Request timeout" });
+      }
+      request.destroy();
     });
   } catch (error) {
     console.error("Error in PDF proxy:", error);
-    res.status(500).json({ error: "Internal server error" });
+    if (!responseStarted) {
+      responseStarted = true;
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
 });
 

@@ -16,7 +16,7 @@ import {
   Split,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { getPDFViewerUrl } from "../config/api";
+import { getPDFViewerUrl } from "../../config/api";
 
 /**
  * Enhanced MobilePaperViewer - A dedicated component for viewing papers on mobile devices
@@ -173,6 +173,36 @@ export default function MobilePaperViewer({
     setLoadingError(null);
     setRetryCount(0);
   };
+
+  // Enhanced Loading component
+  const LoadingIndicator = ({ error, onRetry }) => (
+    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-10">
+      {error ? (
+        <div className="text-center p-6">
+          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 mb-4 text-sm">{error}</p>
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="text-center">
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 border-3 border-gray-600 rounded-full"></div>
+            <div className="absolute inset-0 border-3 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-300 mb-2 text-sm">Loading PDF...</p>
+          <div className="w-32 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Please wait...</p>
+        </div>
+      )}
+    </div>
+  );
 
   // Get current tab URL
   const getCurrentTabUrl = (tab = activeTab) => {
@@ -456,14 +486,7 @@ export default function MobilePaperViewer({
       {/* Paper Content */}
       <div className={`flex-1 relative bg-gray-900`}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
-            <div className="flex flex-col items-center space-y-3">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs text-gray-300">
-                Loading {getTabName(activeTab).toLowerCase()}...
-              </p>
-            </div>
-          </div>
+          <LoadingIndicator error={loadingError} onRetry={handleRetry} />
         )}
 
         {splitView ? (

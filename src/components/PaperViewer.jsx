@@ -302,6 +302,145 @@ export default function PaperViewer({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [tempSavedExamId, setTempSavedExamId] = useState(null);
 
+  // Loading states for PDFs
+  const [qpLoading, setQpLoading] = useState(true);
+  const [msLoading, setMsLoading] = useState(true);
+  const [qpError, setQpError] = useState(null);
+  const [msError, setMsError] = useState(null);
+  const [qpRetryCount, setQpRetryCount] = useState(0);
+  const [msRetryCount, setMsRetryCount] = useState(0);
+
+  const dividerRef = useRef(null);
+  const stackedDividerRef = useRef(null);
+  const examContainerRef = useRef(null);
+
+  // Reset loading states when selectedFile changes
+  useEffect(() => {
+    if (selectedFile) {
+      setQpLoading(true);
+      setMsLoading(true);
+      setQpError(null);
+      setMsError(null);
+      setQpRetryCount(0);
+      setMsRetryCount(0);
+    }
+  }, [selectedFile]);
+
+  // Reset MS loading when activeTab changes
+  useEffect(() => {
+    if (activeTab !== "qp") {
+      setMsLoading(true);
+      setMsError(null);
+      setMsRetryCount(0);
+    }
+  }, [activeTab]);
+
+  // Handle iframe load events
+  const handleQpLoad = () => {
+    setQpLoading(false);
+    setQpError(null);
+    setQpRetryCount(0);
+  };
+
+  const handleMsLoad = () => {
+    setMsLoading(false);
+    setMsError(null);
+    setMsRetryCount(0);
+  };
+
+  const handleQpError = () => {
+    setQpLoading(false);
+    if (qpRetryCount < 2) {
+      setQpError(`Loading Question Paper... Retry ${qpRetryCount + 1}/3`);
+      setQpRetryCount((prev) => prev + 1);
+      setTimeout(() => {
+        setQpLoading(true);
+        setQpError(null);
+      }, 2000);
+    } else {
+      setQpError("Failed to load Question Paper. Please refresh the page.");
+    }
+  };
+
+  const handleMsError = () => {
+    setMsLoading(false);
+    if (msRetryCount < 2) {
+      setMsError(
+        `Loading ${getTabDisplayName(activeTab)}... Retry ${msRetryCount + 1}/3`
+      );
+      setMsRetryCount((prev) => prev + 1);
+      setTimeout(() => {
+        setMsLoading(true);
+        setMsError(null);
+      }, 2000);
+    } else {
+      setMsError(
+        `Failed to load ${getTabDisplayName(
+          activeTab
+        )}. Please refresh the page.`
+      );
+    }
+  };
+
+  // Get display name for active tab
+  const getTabDisplayName = (tab) => {
+    switch (tab) {
+      case "ms":
+        return "Mark Scheme";
+      case "sp":
+        return "Solved Paper";
+      case "in":
+        return "Booklet";
+      default:
+        return "Document";
+    }
+  };
+
+  // Manual retry functions
+  const retryQp = () => {
+    setQpLoading(true);
+    setQpError(null);
+    setQpRetryCount(0);
+  };
+
+  const retryMs = () => {
+    setMsLoading(true);
+    setMsError(null);
+    setMsRetryCount(0);
+  };
+
+  // Loading component
+  const LoadingIndicator = ({ type, error, onRetry }) => (
+    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-10">
+      {error ? (
+        <div className="text-center p-6">
+          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-gray-600 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-300 mb-2">Loading {type}...</p>
+          <div className="w-48 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-sm text-gray-400 mt-2">
+            This may take a few moments
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   // State to track whether we're in mark scheme checking phase after mock exam
   useEffect(() => {
     // If activeTab is set to "ms" and sideBySideView is true, and it was due to a mock exam ending
@@ -1000,15 +1139,24 @@ export default function PaperViewer({
           <div className="flex h-full">
             {/* Left panel (Question Paper) */}
             <div
-              className={`${effectiveIsMobile ? "w-full" : ""} h-full`}
+              className={`${effectiveIsMobile ? "w-full" : ""} h-full relative`}
               style={effectiveIsMobile ? {} : { width: `${leftPanelWidth}%` }}
             >
+              {qpLoading && (
+                <LoadingIndicator
+                  type="Question Paper"
+                  error={qpError}
+                  onRetry={retryQp}
+                />
+              )}
               {selectedFile?.qp && (
                 <iframe
                   src={getPDFViewerUrl(selectedFile.qp)}
                   className="w-full h-full border-0"
                   title="Question Paper"
                   style={{ backgroundColor: "white" }}
+                  onLoad={handleQpLoad}
+                  onError={handleQpError}
                 />
               )}
             </div>
@@ -1023,17 +1171,26 @@ export default function PaperViewer({
 
             {/* Right panel */}
             <div
-              className={`${effectiveIsMobile ? "w-full" : ""} h-full`}
+              className={`${effectiveIsMobile ? "w-full" : ""} h-full relative`}
               style={
                 effectiveIsMobile ? {} : { width: `${100 - leftPanelWidth}%` }
               }
             >
+              {msLoading && (
+                <LoadingIndicator
+                  type={getTabDisplayName(activeTab)}
+                  error={msError}
+                  onRetry={retryMs}
+                />
+              )}
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
                   src={getPDFViewerUrl(selectedFile.ms)}
                   className="w-full h-full border-0"
                   title="Mark Scheme"
                   style={{ backgroundColor: "white" }}
+                  onLoad={handleMsLoad}
+                  onError={handleMsError}
                 />
               )}
               {activeTab === "sp" && selectedFile?.sp && (
@@ -1042,6 +1199,8 @@ export default function PaperViewer({
                   className="w-full h-full border-0"
                   title="Solved Paper"
                   style={{ backgroundColor: "white" }}
+                  onLoad={handleMsLoad}
+                  onError={handleMsError}
                 />
               )}
               {activeTab === "in" && selectedFile?.in && (
@@ -1050,19 +1209,37 @@ export default function PaperViewer({
                   className="w-full h-full border-0"
                   title="Booklet"
                   style={{ backgroundColor: "white" }}
+                  onLoad={handleMsLoad}
+                  onError={handleMsError}
                 />
               )}
             </div>
           </div>
         ) : (
           // Single view
-          <div className="h-full">
+          <div className="h-full relative">
+            {activeTab === "qp" && qpLoading && (
+              <LoadingIndicator
+                type="Question Paper"
+                error={qpError}
+                onRetry={retryQp}
+              />
+            )}
+            {activeTab !== "qp" && msLoading && (
+              <LoadingIndicator
+                type={getTabDisplayName(activeTab)}
+                error={msError}
+                onRetry={retryMs}
+              />
+            )}
             {activeTab === "qp" && selectedFile?.qp && (
               <iframe
                 src={getPDFViewerUrl(selectedFile.qp)}
                 className="w-full h-full border-0"
                 title="Question Paper"
                 style={{ backgroundColor: "white" }}
+                onLoad={handleQpLoad}
+                onError={handleQpError}
               />
             )}
             {activeTab === "ms" && selectedFile?.ms && (
@@ -1071,6 +1248,8 @@ export default function PaperViewer({
                 className="w-full h-full border-0"
                 title="Mark Scheme"
                 style={{ backgroundColor: "white" }}
+                onLoad={handleMsLoad}
+                onError={handleMsError}
               />
             )}
             {activeTab === "sp" && selectedFile?.sp && (
@@ -1079,6 +1258,8 @@ export default function PaperViewer({
                 className="w-full h-full border-0"
                 title="Solved Paper"
                 style={{ backgroundColor: "white" }}
+                onLoad={handleMsLoad}
+                onError={handleMsError}
               />
             )}
             {activeTab === "in" && selectedFile?.in && (
@@ -1087,6 +1268,8 @@ export default function PaperViewer({
                 className="w-full h-full border-0"
                 title="Booklet"
                 style={{ backgroundColor: "white" }}
+                onLoad={handleMsLoad}
+                onError={handleMsError}
               />
             )}
           </div>
