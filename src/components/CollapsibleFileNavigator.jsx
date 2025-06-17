@@ -77,6 +77,17 @@ export default function CollapsibleFileNavigator({
         isMobile ? "shadow-2xl" : ""
       }`}
     >
+      {/* Mobile Close Button - Only show on mobile when not collapsed */}
+      {isMobile && !isCollapsed && (
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 rounded-full p-2 z-40 shadow-lg border border-red-500"
+          aria-label="Close sidebar"
+        >
+          <X size={16} className="text-white" />
+        </button>
+      )}
+
       {/* Desktop Toggle Button - Only show on desktop */}
       {!isMobile && (
         <button
@@ -103,32 +114,16 @@ export default function CollapsibleFileNavigator({
       ) : (
         /* Normal File Navigator - Show when not collapsed or on mobile */
         !isCollapsed && (
-          <div className="flex flex-col h-full">
-            <FileNavigator
-              fileStructure={fileStructure}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onFileSelect={handleFileSelect}
-              activePath={activePath}
-              examMode={examMode}
-              isMobile={isMobile}
-              closeModal={closeModal}
-            />
-
-            {/* Mobile Close Button - At the bottom */}
-            {isMobile && (
-              <div className="border-t border-gray-700 p-3 bg-gray-800/80">
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white rounded-lg py-2.5 px-4 text-sm font-medium transition-colors flex items-center justify-center space-x-2"
-                  aria-label="Close file navigator"
-                >
-                  <X size={18} />
-                  <span>Close Navigator</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <FileNavigator
+            fileStructure={fileStructure}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onFileSelect={handleFileSelect}
+            activePath={activePath}
+            examMode={examMode}
+            isMobile={isMobile}
+            closeModal={closeModal}
+          />
         )
       )}
     </div>

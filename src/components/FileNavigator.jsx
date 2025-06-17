@@ -1662,7 +1662,7 @@ export default function FileNavigator({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full ${isMobile ? "pt-12" : ""}`}>
       {/* Search and filter controls */}
       <div className="p-3 border-b border-gray-700 bg-gray-800/60">
         <div className="relative mb-2">
