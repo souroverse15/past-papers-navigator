@@ -22,10 +22,5 @@
       "src": "/(.*)",
       "dest": "/dist/$1"
     }
-  ],
-  "functions": {
-    "api/pdf-proxy.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
