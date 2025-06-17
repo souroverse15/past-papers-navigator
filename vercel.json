@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "pages/api/pdf-proxy.js": {
+    "api/pdf-proxy.js": {
       "maxDuration": 30
     },
     "api/health.js": {
