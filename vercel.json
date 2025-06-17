@@ -1,6 +1,31 @@
 {
-  "framework": "vite",
-  "outputDirectory": "dist",
-  "installCommand": "npm ci",
-  "buildCommand": "npm run build"
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/pdf-proxy",
+      "dest": "/api/pdf-proxy.js"
+    },
+    {
+      "src": "/pdfjs/(.*)",
+      "dest": "/public/pdfjs/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/$1"
+    }
+  ],
+  "functions": {
+    "api/pdf-proxy.js": {
+      "maxDuration": 30
+    }
+  }
 }

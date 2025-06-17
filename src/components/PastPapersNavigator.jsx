@@ -257,7 +257,7 @@ export default function PastPapersNavigator({
             isMobile={effectiveIsMobile}
             closeModal={closeModal}
             isCollapsed={false}
-            onToggleCollapsed={() => {}}
+            onToggleCollapsed={() => setShowMobileNav(false)}
           />
         </div>
       )}

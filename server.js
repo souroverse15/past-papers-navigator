@@ -21,6 +21,10 @@ app.use(
       "http://localhost:5176",
       "http://localhost:5177",
       "http://localhost:3000",
+      "https://past-papers-navigator.vercel.app",
+      "https://past-papers-navigator-git-main-souroverse15.vercel.app",
+      "https://past-papers-navigator-souroverse15.vercel.app",
+      /\.vercel\.app$/,
     ],
     credentials: true,
   })
