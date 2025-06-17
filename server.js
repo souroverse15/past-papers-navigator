@@ -113,11 +113,9 @@ app.get("/api/pdf-proxy", async (req, res) => {
                 console.error("Error fetching nested redirected PDF:", error);
                 if (!responseStarted) {
                   responseStarted = true;
-                  res
-                    .status(500)
-                    .json({
-                      error: "Failed to fetch PDF from nested redirect",
-                    });
+                  res.status(500).json({
+                    error: "Failed to fetch PDF from nested redirect",
+                  });
                 }
               });
 

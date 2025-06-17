@@ -10,14 +10,15 @@ import {
   AlertTriangle,
   BookOpen,
   Calculator,
+  Menu,
+  X,
+  Search,
 } from "lucide-react";
 
-// Import new components
+// Import components
 import FileNavigator from "./FileNavigator";
 import CollapsibleFileNavigator from "./CollapsibleFileNavigator";
 import PaperViewer from "./PaperViewer";
-import MobileSidebar from "./MobileSidebar";
-import MobileBottomBar from "./MobileBottomBar";
 import ExamMode from "./ExamMode";
 import SearchModal from "./SearchModal";
 
@@ -76,9 +77,11 @@ export default function PastPapersNavigator({
 
   // State for mobile interface
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // State for file navigator
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // State for exam mode
   const [timerDuration, setTimerDuration] = useState(90);
@@ -101,6 +104,37 @@ export default function PastPapersNavigator({
   const [checkingInstructions, setCheckingInstructions] = useState({
     isTemp: false,
   });
+
+  // Initialize sidebar state based on device type
+  useEffect(() => {
+    // Start with sidebar collapsed on mobile, expanded on desktop
+    setSidebarCollapsed(effectiveIsMobile);
+  }, [effectiveIsMobile]);
+
+  // Handle window resize for mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const wasMobile = isMobile;
+      const nowMobile = width < 768;
+
+      setIsMobile(nowMobile);
+
+      // If switching from desktop to mobile, collapse sidebar
+      if (!wasMobile && nowMobile) {
+        setSidebarCollapsed(true);
+      }
+      // If switching from mobile to desktop, expand sidebar
+      else if (wasMobile && !nowMobile) {
+        setSidebarCollapsed(false);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Call once on mount to set initial state
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
 
   // Handle URL path parameter when coming from study goals
   useEffect(() => {
@@ -155,19 +189,6 @@ export default function PastPapersNavigator({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [examMode, onToggleFileNavigator]); // Add onToggleFileNavigator as a dependency
-
-  // Handle window resize for mobile detection
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize(); // Call once on mount to set initial state
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // Update timer duration when a new file is selected
   useEffect(() => {
@@ -247,16 +268,14 @@ export default function PastPapersNavigator({
     setIsFullscreen(false);
   };
 
-  // Toggle sidebar - No longer used, maintained for compatibility
+  // Toggle sidebar - Updated for new unified approach
   const toggleSidebar = () => {
     if (examMode) {
       console.log("Sidebar is locked during exam mode");
       alert("Sidebar is locked during exam mode.");
       return;
     }
-
-    console.log("toggleSidebar is no longer functional");
-    // No longer toggling the file navigator panel
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   // Search modal handlers
@@ -409,33 +428,18 @@ export default function PastPapersNavigator({
 
   return (
     <>
-      {/* Mobile sidebar drawer */}
-      {effectiveIsMobile && (
-        <MobileSidebar
-          showMobileSidebar={showMobileSidebar}
-          setShowMobileSidebar={setShowMobileSidebar}
-          selectedFile={selectedFile}
-          user={user}
-        />
-      )}
-
-      {/* Search modal for mobile */}
-      <SearchModal
-        modalOpen={modalOpen}
-        closeModal={closeModal}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        fileStructure={fileStructure}
-        onFileSelect={handleFileSelect}
-        activePath={activePath}
-        examMode={examMode}
-        effectiveIsMobile={effectiveIsMobile}
-      />
-
       <div className="h-screen w-full bg-[#0D1321] text-white relative overflow-hidden">
         <div className="flex h-full">
-          {/* File Navigator Panel - Always shown on desktop, collapsible with chevron */}
-          {!effectiveIsMobile && (
+          {/* Unified File Navigator - Works on both desktop and mobile */}
+          <div
+            className={`${
+              effectiveIsMobile ? "absolute inset-y-0 left-0 z-30" : "relative"
+            } ${
+              effectiveIsMobile && sidebarCollapsed
+                ? "-translate-x-full"
+                : "translate-x-0"
+            } transition-transform duration-300 ease-in-out`}
+          >
             <CollapsibleFileNavigator
               fileStructure={fileStructure}
               searchQuery={searchQuery}
@@ -445,36 +449,75 @@ export default function PastPapersNavigator({
               examMode={examMode}
               isMobile={effectiveIsMobile}
               closeModal={closeModal}
+              isCollapsed={sidebarCollapsed}
+              onToggleCollapsed={setSidebarCollapsed}
+            />
+          </div>
+
+          {/* Overlay for mobile when sidebar is open */}
+          {effectiveIsMobile && !sidebarCollapsed && (
+            <div
+              className="absolute inset-0 bg-black/50 z-20"
+              onClick={() => setSidebarCollapsed(true)}
             />
           )}
 
           {/* Main Content Area */}
-          <PaperViewer
-            selectedFile={selectedFile}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            timerDuration={timerDuration}
-            timerRunning={timerRunning}
-            handleTimerToggle={handleTimerToggle}
-            handleExamModeChange={handleExamModeChange}
-            initialExamMode={initialExamMode}
-            handleTimerMount={handleTimerMount}
-            examMode={examMode}
-            showTimer={showTimer}
-            effectiveIsMobile={effectiveIsMobile}
-            activePath={activePath}
-          />
+          <div className={`flex-1 ${effectiveIsMobile ? "relative z-10" : ""}`}>
+            <PaperViewer
+              selectedFile={selectedFile}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              timerDuration={timerDuration}
+              timerRunning={timerRunning}
+              handleTimerToggle={handleTimerToggle}
+              handleExamModeChange={handleExamModeChange}
+              initialExamMode={initialExamMode}
+              handleTimerMount={handleTimerMount}
+              examMode={examMode}
+              showTimer={showTimer}
+              effectiveIsMobile={effectiveIsMobile}
+              activePath={activePath}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Mobile Bottom App Bar */}
-      {effectiveIsMobile && !examMode && (
-        <MobileBottomBar
-          setShowMobileSidebar={setShowMobileSidebar}
-          openModal={openModal}
-          selectedFile={selectedFile}
+        {/* Floating Action Buttons for Mobile - Always show when sidebar is collapsed */}
+        {effectiveIsMobile && sidebarCollapsed && (
+          <div className="fixed bottom-6 left-6 flex flex-col space-y-3 z-40">
+            {/* File Navigator Button */}
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+              aria-label="Open file navigator"
+            >
+              <Menu size={24} />
+            </button>
+
+            {/* Search Button */}
+            <button
+              onClick={openModal}
+              className="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+              aria-label="Search papers"
+            >
+              <Search size={24} />
+            </button>
+          </div>
+        )}
+
+        {/* Search Modal */}
+        <SearchModal
+          modalOpen={modalOpen}
+          closeModal={closeModal}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          fileStructure={fileStructure}
+          onFileSelect={handleFileSelect}
+          activePath={activePath}
+          examMode={examMode}
+          effectiveIsMobile={effectiveIsMobile}
         />
-      )}
+      </div>
 
       {/* Checking Instructions Modal */}
       {showCheckingModal &&

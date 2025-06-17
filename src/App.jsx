@@ -16,11 +16,6 @@ import DashboardRedirect from "./components/DashboardRedirect";
 import HelpSupport from "./components/HelpSupport";
 import { useIsMobile, useIsTablet, useIsDesktop } from "./hooks/useMediaQuery";
 
-// Lazy-loaded mobile components
-const MobilePastPapersNavigator = lazy(() =>
-  import("./components/mobile/MobilePastPapersNavigator")
-);
-
 function App() {
   const { user } = useAuth();
   const [showFileNavigator, setShowFileNavigator] = useState(true);
@@ -49,9 +44,18 @@ function App() {
     <Router>
       <Suspense fallback={<LoadingScreen />}>
         {isSmallScreen ? (
-          // Mobile and Tablet Routes
+          // Mobile and Tablet Routes - Unified Experience
           <Routes>
-            <Route path="/" element={<MobilePastPapersNavigator />} />
+            <Route
+              path="/"
+              element={
+                <PastPapersNavigator
+                  isMobileApp={true}
+                  sidebarFileNavigatorOpen={showFileNavigator}
+                  onToggleFileNavigator={toggleFileNavigator}
+                />
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route
               path="/dashboard"
@@ -85,7 +89,8 @@ function App() {
                   path="/"
                   element={
                     <PastPapersNavigator
-                      showFileNavigator={showFileNavigator}
+                      sidebarFileNavigatorOpen={showFileNavigator}
+                      onToggleFileNavigator={toggleFileNavigator}
                     />
                   }
                 />

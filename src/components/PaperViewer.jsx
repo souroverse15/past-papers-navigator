@@ -854,7 +854,8 @@ export default function PaperViewer({
             return;
           }
           setActiveTab(isEnglishB ? "in" : "sp");
-          setSideBySideView(false);
+          // Enable side-by-side view on desktop, stacked view on mobile
+          setSideBySideView(true);
         }}
         className={`${
           effectiveIsMobile ? "px-3 py-1.5 text-sm" : "px-3 py-1.5"
@@ -1135,11 +1136,15 @@ export default function PaperViewer({
       {/* PDF Viewer Container */}
       <div className="flex-1 relative overflow-hidden bg-[#0D1321]">
         {sideBySideView ? (
-          // Side by side view
-          <div className="flex h-full">
-            {/* Left panel (Question Paper) */}
+          // Side by side view (desktop) / Stacked view (mobile)
+          <div
+            className={`${effectiveIsMobile ? "flex flex-col" : "flex"} h-full`}
+          >
+            {/* Top panel (mobile) / Left panel (desktop) - Question Paper */}
             <div
-              className={`${effectiveIsMobile ? "w-full" : ""} h-full relative`}
+              className={`${
+                effectiveIsMobile ? "w-full h-1/2" : `h-full`
+              } relative`}
               style={effectiveIsMobile ? {} : { width: `${leftPanelWidth}%` }}
             >
               {qpLoading && (
@@ -1161,17 +1166,21 @@ export default function PaperViewer({
               )}
             </div>
 
-            {/* Divider */}
-            {!effectiveIsMobile && (
+            {/* Divider - Horizontal on mobile, Vertical on desktop */}
+            {!effectiveIsMobile ? (
               <div
                 className="w-1 bg-gray-700 cursor-col-resize hover:bg-blue-500 transition-colors"
                 onMouseDown={handleDividerMouseDown}
               />
+            ) : (
+              <div className="h-1 bg-gray-700 w-full" />
             )}
 
-            {/* Right panel */}
+            {/* Bottom panel (mobile) / Right panel (desktop) */}
             <div
-              className={`${effectiveIsMobile ? "w-full" : ""} h-full relative`}
+              className={`${
+                effectiveIsMobile ? "w-full h-1/2" : `h-full`
+              } relative`}
               style={
                 effectiveIsMobile ? {} : { width: `${100 - leftPanelWidth}%` }
               }
