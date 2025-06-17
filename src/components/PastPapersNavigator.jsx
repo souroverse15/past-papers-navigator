@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
+import {
+  useLocation,
+  useSearchParams,
+  Link,
+  useNavigate,
+} from "react-router-dom";
 import fileStructure from "../data/fileStructure.json";
 import { getPaperDuration } from "../data/examDurations";
 import "../animations.css";
@@ -15,11 +20,9 @@ import {
   Search,
   FileText,
   BarChart2,
-  Settings,
+  HelpCircle,
   LogIn,
   LogOut,
-  HelpCircle,
-  ChevronRight,
   User,
   ShieldCheck,
 } from "lucide-react";
@@ -30,61 +33,6 @@ import CollapsibleFileNavigator from "./CollapsibleFileNavigator";
 import PaperViewer from "./PaperViewer";
 import ExamMode from "./ExamMode";
 import SearchModal from "./SearchModal";
-
-// Define sidebar sections for mobile navigation
-const MOBILE_SIDEBAR_SECTIONS = {
-  MAIN: [
-    {
-      id: "papers",
-      icon: <FileText size={20} />,
-      text: "Past Papers",
-      path: "/",
-      isFileNavigator: true,
-    },
-  ],
-  FEATURES: [
-    {
-      id: "dashboard",
-      icon: <BarChart2 size={20} />,
-      text: "Dashboard",
-      path: "/dashboard",
-      requiresAuth: true,
-    },
-    {
-      id: "admin-dashboard",
-      icon: <ShieldCheck size={20} />,
-      text: "Admin Dashboard",
-      path: "/admin",
-      requiresAuth: true,
-      requiredRole: "Admin",
-    },
-  ],
-  ACCOUNT: [
-    {
-      id: "login",
-      icon: <LogIn size={20} />,
-      text: "Login",
-      path: "/login",
-      hideWhenLoggedIn: true,
-    },
-    {
-      id: "logout",
-      icon: <LogOut size={20} />,
-      text: "Logout",
-      action: "logout",
-      showWhenLoggedIn: true,
-      requiresAuth: true,
-    },
-  ],
-  SUPPORT: [
-    {
-      id: "help",
-      icon: <HelpCircle size={20} />,
-      text: "Help & Support",
-      path: "/help",
-    },
-  ],
-};
 
 // Helper function to find a file in the file structure by path
 const findFileByPath = (structure, path) => {
@@ -129,10 +77,10 @@ export default function PastPapersNavigator({
   onToggleFileNavigator,
   isMobileApp,
 }) {
-  const { user, isAuthenticated, handleLogout, hasRole } = useAuth();
+  const { user, handleLogout } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   // State for file navigation and selection
   const [selectedFile, setSelectedFile] = useState(null);
@@ -145,10 +93,12 @@ export default function PastPapersNavigator({
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State for navigation
-  const [navigationPath, setNavigationPath] = useState("/");
+  // State for file navigator
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [fileNavigatorOpen, setFileNavigatorOpen] = useState(false);
+
+  // State for mobile navigation
+  const [showMobileNav, setShowMobileNav] = useState(false);
+  const [activeNavSection, setActiveNavSection] = useState("papers");
 
   // State for exam mode
   const [timerDuration, setTimerDuration] = useState(90);
@@ -172,11 +122,169 @@ export default function PastPapersNavigator({
     isTemp: false,
   });
 
+  // Define mobile navigation sections
+  const mobileNavSections = [
+    {
+      id: "papers",
+      icon: FileText,
+      text: "Past Papers",
+      path: "/",
+      hasFileNavigator: true,
+    },
+    {
+      id: "dashboard",
+      icon: BarChart2,
+      text: "Dashboard",
+      path: "/dashboard",
+      requiresAuth: true,
+    },
+    {
+      id: "admin",
+      icon: ShieldCheck,
+      text: "Admin",
+      path: "/admin",
+      requiresAuth: true,
+      requiredRole: "Admin",
+    },
+    {
+      id: "help",
+      icon: HelpCircle,
+      text: "Help",
+      path: "/help",
+    },
+    {
+      id: "login",
+      icon: user ? LogOut : LogIn,
+      text: user ? "Logout" : "Login",
+      path: user ? null : "/login",
+      action: user ? "logout" : null,
+    },
+  ];
+
+  // Filter navigation items based on auth state
+  const getVisibleNavSections = () => {
+    return mobileNavSections.filter((section) => {
+      if (section.requiresAuth && !user) return false;
+      if (
+        section.requiredRole &&
+        (!user || !user.roles?.includes(section.requiredRole))
+      )
+        return false;
+      return true;
+    });
+  };
+
+  // Handle mobile navigation item click
+  const handleMobileNavClick = (section) => {
+    if (section.action === "logout") {
+      // Handle logout
+      handleLogout();
+      navigate("/");
+      setShowMobileNav(false);
+      return;
+    }
+
+    if (section.path) {
+      navigate(section.path);
+    }
+
+    setActiveNavSection(section.id);
+
+    // If it's not the papers section, close the mobile nav
+    if (section.id !== "papers") {
+      setShowMobileNav(false);
+    }
+  };
+
+  // Mobile Navigation Component
+  const MobileNavigation = () => (
+    <div className="flex h-full shadow-2xl">
+      {/* Slim Sidebar */}
+      <div className="w-16 bg-gray-900 border-r border-gray-700 flex flex-col">
+        {/* Header */}
+        <div className="p-3 border-b border-gray-700">
+          <FileText size={24} className="text-blue-500 mx-auto" />
+        </div>
+
+        {/* Navigation Items */}
+        <div className="flex-1 py-3 space-y-1">
+          {getVisibleNavSections().map((section) => {
+            const Icon = section.icon;
+            const isActive = activeNavSection === section.id;
+
+            return (
+              <button
+                key={section.id}
+                onClick={() => handleMobileNavClick(section)}
+                className={`w-full p-3 flex flex-col items-center justify-center transition-all duration-200 ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                }`}
+                title={section.text}
+              >
+                <Icon size={20} />
+                <span className="text-xs mt-1 font-medium">
+                  {section.text.split(" ")[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Close Button */}
+        <div className="p-3 border-t border-gray-700">
+          <button
+            onClick={() => setShowMobileNav(false)}
+            className="w-full p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
+            title="Close navigation"
+          >
+            <X size={20} className="mx-auto" />
+          </button>
+        </div>
+      </div>
+
+      {/* File Navigator Panel - Only show for Papers section */}
+      {activeNavSection === "papers" && (
+        <div className="w-64 bg-gray-800">
+          <CollapsibleFileNavigator
+            fileStructure={fileStructure}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onFileSelect={handleFileSelect}
+            activePath={activePath}
+            examMode={examMode}
+            isMobile={effectiveIsMobile}
+            closeModal={closeModal}
+            isCollapsed={false}
+            onToggleCollapsed={() => {}}
+          />
+        </div>
+      )}
+    </div>
+  );
+
   // Initialize sidebar state based on device type
   useEffect(() => {
     // Start with sidebar collapsed on mobile, expanded on desktop
     setSidebarCollapsed(effectiveIsMobile);
   }, [effectiveIsMobile]);
+
+  // Set active navigation section based on current path
+  useEffect(() => {
+    const currentPath = location.pathname;
+    if (currentPath === "/") {
+      setActiveNavSection("papers");
+    } else if (currentPath === "/dashboard") {
+      setActiveNavSection("dashboard");
+    } else if (currentPath === "/admin") {
+      setActiveNavSection("admin");
+    } else if (currentPath === "/help") {
+      setActiveNavSection("help");
+    } else if (currentPath === "/login") {
+      setActiveNavSection("login");
+    }
+  }, [location.pathname]);
 
   // Handle window resize for mobile detection
   useEffect(() => {
@@ -387,6 +495,11 @@ export default function PastPapersNavigator({
 
     // Also set showTimer to true when a file is selected
     setShowTimer(true);
+
+    // Close mobile navigation when file is selected
+    if (effectiveIsMobile) {
+      setShowMobileNav(false);
+    }
   };
 
   // Timer handlers
@@ -398,6 +511,11 @@ export default function PastPapersNavigator({
   const handleExamModeChange = (newExamMode, options = {}) => {
     console.log(`Setting exam mode to ${newExamMode}`, options);
     setExamMode(newExamMode);
+
+    // Close mobile navigation when entering exam mode
+    if (newExamMode && effectiveIsMobile) {
+      setShowMobileNav(false);
+    }
 
     if (newExamMode) {
       // Save the original tab and switch to QP
@@ -478,45 +596,6 @@ export default function PastPapersNavigator({
     }
   }, [selectedFile, showTimer]);
 
-  // Navigation handlers
-  const handleNavigationSelect = (item) => {
-    if (item.action === "logout") {
-      handleLogout();
-      navigate("/");
-      return;
-    }
-
-    if (item.isFileNavigator) {
-      // Toggle file navigator when Past Papers is clicked
-      setFileNavigatorOpen(!fileNavigatorOpen);
-    } else if (item.path) {
-      // Navigate to other sections
-      navigate(item.path);
-      setNavigationPath(item.path);
-      // Close file navigator when navigating away from Past Papers
-      setFileNavigatorOpen(false);
-    }
-  };
-
-  // Filter menu items based on authentication state and user role
-  const filterMenuItems = (items) => {
-    return items.filter((item) => {
-      // Hide items that require auth if not authenticated
-      if (item.requiresAuth && !isAuthenticated()) return false;
-
-      // Hide items that require specific role
-      if (item.requiredRole && !hasRole(item.requiredRole)) return false;
-
-      // Hide items marked to hide when logged in
-      if (item.hideWhenLoggedIn && isAuthenticated()) return false;
-
-      // Hide items marked to show only when logged in
-      if (item.showWhenLoggedIn && !isAuthenticated()) return false;
-
-      return true;
-    });
-  };
-
   // If in exam mode, show the exam interface
   if (examMode) {
     return (
@@ -536,115 +615,16 @@ export default function PastPapersNavigator({
     <>
       <div className="h-screen w-full bg-[#0D1321] text-white relative overflow-hidden">
         <div className="flex h-full">
-          {/* Mobile Slim Sidebar */}
-          {effectiveIsMobile && (
-            <div className="w-16 bg-[#0D1321] border-r border-gray-800 flex flex-col">
-              {/* App Logo */}
-              <div className="flex items-center justify-center py-4 border-b border-gray-800">
-                <FileText size={24} className="text-blue-500" />
-              </div>
-
-              {/* Navigation Items */}
-              <div className="flex-1 py-3 px-2 space-y-1">
-                {/* Main Section */}
-                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.MAIN).map((item) => (
-                  <MobileSidebarItem
-                    key={item.id}
-                    item={item}
-                    isActive={navigationPath === item.path}
-                    onSelect={handleNavigationSelect}
-                    fileNavigatorOpen={fileNavigatorOpen}
-                  />
-                ))}
-
-                {/* Features Section */}
-                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.FEATURES).map(
-                  (item) => (
-                    <MobileSidebarItem
-                      key={item.id}
-                      item={item}
-                      isActive={navigationPath === item.path}
-                      onSelect={handleNavigationSelect}
-                      fileNavigatorOpen={fileNavigatorOpen}
-                    />
-                  )
-                )}
-
-                {/* Account Section */}
-                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.ACCOUNT).map(
-                  (item) => (
-                    <MobileSidebarItem
-                      key={item.id}
-                      item={item}
-                      isActive={navigationPath === item.path}
-                      onSelect={handleNavigationSelect}
-                      fileNavigatorOpen={fileNavigatorOpen}
-                    />
-                  )
-                )}
-
-                {/* Support Section */}
-                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.SUPPORT).map(
-                  (item) => (
-                    <MobileSidebarItem
-                      key={item.id}
-                      item={item}
-                      isActive={navigationPath === item.path}
-                      onSelect={handleNavigationSelect}
-                      fileNavigatorOpen={fileNavigatorOpen}
-                    />
-                  )
-                )}
-              </div>
-
-              {/* User Profile */}
-              {user && (
-                <div className="border-t border-gray-800 p-2">
-                  <div className="h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center mx-auto">
-                    <User size={16} className="text-blue-300" />
-                  </div>
-                </div>
-              )}
+          {/* Mobile Navigation - Only show when toggled */}
+          {effectiveIsMobile && showMobileNav && (
+            <div className="absolute inset-y-0 left-0 z-30 animate-slideInLeft">
+              <MobileNavigation />
             </div>
           )}
 
-          {/* File Navigator Panel - Slides out from Past Papers */}
-          {effectiveIsMobile && fileNavigatorOpen && (
-            <>
-              {/* Overlay */}
-              <div
-                className="absolute inset-0 bg-black/50 z-20"
-                onClick={() => setFileNavigatorOpen(false)}
-              />
-
-              {/* File Navigator */}
-              <div className="absolute left-16 top-0 bottom-0 w-80 z-30">
-                <CollapsibleFileNavigator
-                  fileStructure={fileStructure}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  onFileSelect={(file, path, breadcrumbs) => {
-                    handleFileSelect(file, path, breadcrumbs);
-                    setFileNavigatorOpen(false); // Close after selection
-                  }}
-                  activePath={activePath}
-                  examMode={examMode}
-                  isMobile={effectiveIsMobile}
-                  closeModal={() => setFileNavigatorOpen(false)}
-                  isCollapsed={false}
-                  onToggleCollapsed={() => setFileNavigatorOpen(false)}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Desktop File Navigator */}
+          {/* Desktop File Navigator - Only show on desktop */}
           {!effectiveIsMobile && (
-            <div
-              className={`${
-                sidebarCollapsed ? "-translate-x-full" : "translate-x-0"
-              } transition-transform duration-300 ease-in-out`}
-            >
+            <div className="relative">
               <CollapsibleFileNavigator
                 fileStructure={fileStructure}
                 searchQuery={searchQuery}
@@ -658,6 +638,14 @@ export default function PastPapersNavigator({
                 onToggleCollapsed={setSidebarCollapsed}
               />
             </div>
+          )}
+
+          {/* Overlay for mobile when navigation is open */}
+          {effectiveIsMobile && showMobileNav && (
+            <div
+              className="absolute inset-0 bg-black/50 z-20"
+              onClick={() => setShowMobileNav(false)}
+            />
           )}
 
           {/* Main Content Area */}
@@ -681,11 +669,11 @@ export default function PastPapersNavigator({
         </div>
 
         {/* Floating Action Button for Mobile - Bottom Right */}
-        {effectiveIsMobile && !fileNavigatorOpen && (
+        {effectiveIsMobile && !showMobileNav && !examMode && (
           <button
-            onClick={() => setFileNavigatorOpen(true)}
-            className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-40 transition-all duration-200 hover:scale-110"
-            aria-label="Open file navigator"
+            onClick={() => setShowMobileNav(true)}
+            className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-xl z-40 transition-all duration-200 hover:scale-110 border border-blue-500"
+            aria-label="Open navigation"
           >
             <Menu size={24} />
           </button>
@@ -797,35 +785,3 @@ export default function PastPapersNavigator({
     </>
   );
 }
-
-// Mobile Sidebar Item Component
-const MobileSidebarItem = ({ item, isActive, onSelect, fileNavigatorOpen }) => {
-  const baseClasses = `
-    w-full h-12 flex items-center justify-center rounded-lg
-    transition-all duration-200 group relative cursor-pointer
-  `;
-
-  const activeClasses = isActive
-    ? "bg-blue-600/20 text-blue-300"
-    : "hover:bg-gray-800/60 text-gray-400 hover:text-white";
-
-  return (
-    <button
-      className={`${baseClasses} ${activeClasses}`}
-      onClick={() => onSelect(item)}
-      title={item.text}
-    >
-      <div className="flex-shrink-0 relative">
-        {item.icon}
-        {item.isFileNavigator && fileNavigatorOpen && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
-        )}
-      </div>
-
-      {/* Tooltip */}
-      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-        {item.text}
-      </div>
-    </button>
-  );
-};
