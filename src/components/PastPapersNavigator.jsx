@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams, useNavigate } from "react-router-dom";
 import fileStructure from "../data/fileStructure.json";
 import { getPaperDuration } from "../data/examDurations";
 import "../animations.css";
@@ -13,6 +13,15 @@ import {
   Menu,
   X,
   Search,
+  FileText,
+  BarChart2,
+  Settings,
+  LogIn,
+  LogOut,
+  HelpCircle,
+  ChevronRight,
+  User,
+  ShieldCheck,
 } from "lucide-react";
 
 // Import components
@@ -21,6 +30,61 @@ import CollapsibleFileNavigator from "./CollapsibleFileNavigator";
 import PaperViewer from "./PaperViewer";
 import ExamMode from "./ExamMode";
 import SearchModal from "./SearchModal";
+
+// Define sidebar sections for mobile navigation
+const MOBILE_SIDEBAR_SECTIONS = {
+  MAIN: [
+    {
+      id: "papers",
+      icon: <FileText size={20} />,
+      text: "Past Papers",
+      path: "/",
+      isFileNavigator: true,
+    },
+  ],
+  FEATURES: [
+    {
+      id: "dashboard",
+      icon: <BarChart2 size={20} />,
+      text: "Dashboard",
+      path: "/dashboard",
+      requiresAuth: true,
+    },
+    {
+      id: "admin-dashboard",
+      icon: <ShieldCheck size={20} />,
+      text: "Admin Dashboard",
+      path: "/admin",
+      requiresAuth: true,
+      requiredRole: "Admin",
+    },
+  ],
+  ACCOUNT: [
+    {
+      id: "login",
+      icon: <LogIn size={20} />,
+      text: "Login",
+      path: "/login",
+      hideWhenLoggedIn: true,
+    },
+    {
+      id: "logout",
+      icon: <LogOut size={20} />,
+      text: "Logout",
+      action: "logout",
+      showWhenLoggedIn: true,
+      requiresAuth: true,
+    },
+  ],
+  SUPPORT: [
+    {
+      id: "help",
+      icon: <HelpCircle size={20} />,
+      text: "Help & Support",
+      path: "/help",
+    },
+  ],
+};
 
 // Helper function to find a file in the file structure by path
 const findFileByPath = (structure, path) => {
@@ -65,9 +129,10 @@ export default function PastPapersNavigator({
   onToggleFileNavigator,
   isMobileApp,
 }) {
-  const { user } = useAuth();
+  const { user, isAuthenticated, handleLogout, hasRole } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // State for file navigation and selection
   const [selectedFile, setSelectedFile] = useState(null);
@@ -80,8 +145,10 @@ export default function PastPapersNavigator({
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State for file navigator
+  // State for navigation
+  const [navigationPath, setNavigationPath] = useState("/");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [fileNavigatorOpen, setFileNavigatorOpen] = useState(false);
 
   // State for exam mode
   const [timerDuration, setTimerDuration] = useState(90);
@@ -411,6 +478,45 @@ export default function PastPapersNavigator({
     }
   }, [selectedFile, showTimer]);
 
+  // Navigation handlers
+  const handleNavigationSelect = (item) => {
+    if (item.action === "logout") {
+      handleLogout();
+      navigate("/");
+      return;
+    }
+
+    if (item.isFileNavigator) {
+      // Toggle file navigator when Past Papers is clicked
+      setFileNavigatorOpen(!fileNavigatorOpen);
+    } else if (item.path) {
+      // Navigate to other sections
+      navigate(item.path);
+      setNavigationPath(item.path);
+      // Close file navigator when navigating away from Past Papers
+      setFileNavigatorOpen(false);
+    }
+  };
+
+  // Filter menu items based on authentication state and user role
+  const filterMenuItems = (items) => {
+    return items.filter((item) => {
+      // Hide items that require auth if not authenticated
+      if (item.requiresAuth && !isAuthenticated()) return false;
+
+      // Hide items that require specific role
+      if (item.requiredRole && !hasRole(item.requiredRole)) return false;
+
+      // Hide items marked to hide when logged in
+      if (item.hideWhenLoggedIn && isAuthenticated()) return false;
+
+      // Hide items marked to show only when logged in
+      if (item.showWhenLoggedIn && !isAuthenticated()) return false;
+
+      return true;
+    });
+  };
+
   // If in exam mode, show the exam interface
   if (examMode) {
     return (
@@ -430,36 +536,128 @@ export default function PastPapersNavigator({
     <>
       <div className="h-screen w-full bg-[#0D1321] text-white relative overflow-hidden">
         <div className="flex h-full">
-          {/* Unified File Navigator - Works on both desktop and mobile */}
-          <div
-            className={`${
-              effectiveIsMobile ? "absolute inset-y-0 left-0 z-30" : "relative"
-            } ${
-              effectiveIsMobile && sidebarCollapsed
-                ? "-translate-x-full"
-                : "translate-x-0"
-            } transition-transform duration-300 ease-in-out`}
-          >
-            <CollapsibleFileNavigator
-              fileStructure={fileStructure}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onFileSelect={handleFileSelect}
-              activePath={activePath}
-              examMode={examMode}
-              isMobile={effectiveIsMobile}
-              closeModal={closeModal}
-              isCollapsed={sidebarCollapsed}
-              onToggleCollapsed={setSidebarCollapsed}
-            />
-          </div>
+          {/* Mobile Slim Sidebar */}
+          {effectiveIsMobile && (
+            <div className="w-16 bg-[#0D1321] border-r border-gray-800 flex flex-col">
+              {/* App Logo */}
+              <div className="flex items-center justify-center py-4 border-b border-gray-800">
+                <FileText size={24} className="text-blue-500" />
+              </div>
 
-          {/* Overlay for mobile when sidebar is open */}
-          {effectiveIsMobile && !sidebarCollapsed && (
+              {/* Navigation Items */}
+              <div className="flex-1 py-3 px-2 space-y-1">
+                {/* Main Section */}
+                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.MAIN).map((item) => (
+                  <MobileSidebarItem
+                    key={item.id}
+                    item={item}
+                    isActive={navigationPath === item.path}
+                    onSelect={handleNavigationSelect}
+                    fileNavigatorOpen={fileNavigatorOpen}
+                  />
+                ))}
+
+                {/* Features Section */}
+                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.FEATURES).map(
+                  (item) => (
+                    <MobileSidebarItem
+                      key={item.id}
+                      item={item}
+                      isActive={navigationPath === item.path}
+                      onSelect={handleNavigationSelect}
+                      fileNavigatorOpen={fileNavigatorOpen}
+                    />
+                  )
+                )}
+
+                {/* Account Section */}
+                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.ACCOUNT).map(
+                  (item) => (
+                    <MobileSidebarItem
+                      key={item.id}
+                      item={item}
+                      isActive={navigationPath === item.path}
+                      onSelect={handleNavigationSelect}
+                      fileNavigatorOpen={fileNavigatorOpen}
+                    />
+                  )
+                )}
+
+                {/* Support Section */}
+                {filterMenuItems(MOBILE_SIDEBAR_SECTIONS.SUPPORT).map(
+                  (item) => (
+                    <MobileSidebarItem
+                      key={item.id}
+                      item={item}
+                      isActive={navigationPath === item.path}
+                      onSelect={handleNavigationSelect}
+                      fileNavigatorOpen={fileNavigatorOpen}
+                    />
+                  )
+                )}
+              </div>
+
+              {/* User Profile */}
+              {user && (
+                <div className="border-t border-gray-800 p-2">
+                  <div className="h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center mx-auto">
+                    <User size={16} className="text-blue-300" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* File Navigator Panel - Slides out from Past Papers */}
+          {effectiveIsMobile && fileNavigatorOpen && (
+            <>
+              {/* Overlay */}
+              <div
+                className="absolute inset-0 bg-black/50 z-20"
+                onClick={() => setFileNavigatorOpen(false)}
+              />
+
+              {/* File Navigator */}
+              <div className="absolute left-16 top-0 bottom-0 w-80 z-30">
+                <CollapsibleFileNavigator
+                  fileStructure={fileStructure}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onFileSelect={(file, path, breadcrumbs) => {
+                    handleFileSelect(file, path, breadcrumbs);
+                    setFileNavigatorOpen(false); // Close after selection
+                  }}
+                  activePath={activePath}
+                  examMode={examMode}
+                  isMobile={effectiveIsMobile}
+                  closeModal={() => setFileNavigatorOpen(false)}
+                  isCollapsed={false}
+                  onToggleCollapsed={() => setFileNavigatorOpen(false)}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Desktop File Navigator */}
+          {!effectiveIsMobile && (
             <div
-              className="absolute inset-0 bg-black/50 z-20"
-              onClick={() => setSidebarCollapsed(true)}
-            />
+              className={`${
+                sidebarCollapsed ? "-translate-x-full" : "translate-x-0"
+              } transition-transform duration-300 ease-in-out`}
+            >
+              <CollapsibleFileNavigator
+                fileStructure={fileStructure}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onFileSelect={handleFileSelect}
+                activePath={activePath}
+                examMode={examMode}
+                isMobile={effectiveIsMobile}
+                closeModal={closeModal}
+                isCollapsed={sidebarCollapsed}
+                onToggleCollapsed={setSidebarCollapsed}
+              />
+            </div>
           )}
 
           {/* Main Content Area */}
@@ -482,27 +680,15 @@ export default function PastPapersNavigator({
           </div>
         </div>
 
-        {/* Floating Action Buttons for Mobile - Always show when sidebar is collapsed */}
-        {effectiveIsMobile && sidebarCollapsed && (
-          <div className="fixed bottom-6 left-6 flex flex-col space-y-3 z-40">
-            {/* File Navigator Button */}
-            <button
-              onClick={() => setSidebarCollapsed(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-              aria-label="Open file navigator"
-            >
-              <Menu size={24} />
-            </button>
-
-            {/* Search Button */}
-            <button
-              onClick={openModal}
-              className="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-              aria-label="Search papers"
-            >
-              <Search size={24} />
-            </button>
-          </div>
+        {/* Floating Action Button for Mobile - Bottom Right */}
+        {effectiveIsMobile && !fileNavigatorOpen && (
+          <button
+            onClick={() => setFileNavigatorOpen(true)}
+            className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-40 transition-all duration-200 hover:scale-110"
+            aria-label="Open file navigator"
+          >
+            <Menu size={24} />
+          </button>
         )}
 
         {/* Search Modal */}
@@ -611,3 +797,35 @@ export default function PastPapersNavigator({
     </>
   );
 }
+
+// Mobile Sidebar Item Component
+const MobileSidebarItem = ({ item, isActive, onSelect, fileNavigatorOpen }) => {
+  const baseClasses = `
+    w-full h-12 flex items-center justify-center rounded-lg
+    transition-all duration-200 group relative cursor-pointer
+  `;
+
+  const activeClasses = isActive
+    ? "bg-blue-600/20 text-blue-300"
+    : "hover:bg-gray-800/60 text-gray-400 hover:text-white";
+
+  return (
+    <button
+      className={`${baseClasses} ${activeClasses}`}
+      onClick={() => onSelect(item)}
+      title={item.text}
+    >
+      <div className="flex-shrink-0 relative">
+        {item.icon}
+        {item.isFileNavigator && fileNavigatorOpen && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+        {item.text}
+      </div>
+    </button>
+  );
+};
