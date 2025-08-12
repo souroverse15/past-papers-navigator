@@ -165,11 +165,11 @@ export default function PastPapersNavigator({
   const getVisibleNavSections = () => {
     return mobileNavSections.filter((section) => {
       if (section.requiresAuth && !user) return false;
-      if (
-        section.requiredRole &&
-        (!user || !user.roles?.includes(section.requiredRole))
-      )
-        return false;
+      if (section.requiredRole) {
+        const hasPrimary = user && user.role === section.requiredRole;
+        const hasSecondary = user && Array.isArray(user.secondaryRoles) && user.secondaryRoles.includes(section.requiredRole);
+        if (!hasPrimary && !hasSecondary) return false;
+      }
       return true;
     });
   };
