@@ -28,6 +28,7 @@ import {
   autoCompleteGoalWhenMockCompleted,
 } from "../firebase/userService";
 import { getPDFViewerUrl } from "../config/api";
+import { getPDFViewerUrlWithPDFJS, getNativeDriveViewerUrl, getGoogleDocsViewerUrl } from "../config/api";
 
 // Helper function to extract subject from paper name or path
 const extractSubject = (paperName, activePath = "") => {
@@ -313,6 +314,9 @@ export default function PaperViewer({
   const dividerRef = useRef(null);
   const stackedDividerRef = useRef(null);
   const examContainerRef = useRef(null);
+
+  const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [useFallbackViewer, setUseFallbackViewer] = useState(false);
 
   // Reset loading states when selectedFile changes
   useEffect(() => {
@@ -900,6 +904,46 @@ export default function PaperViewer({
     );
   };
 
+  // Helper function to get the appropriate viewer URL
+  const getViewerUrl = (url) => {
+    if (!url) return null;
+    
+    // If there was an error and we're using fallback
+    if (useFallbackViewer && url.includes("drive.google.com")) {
+      // Try Google Docs viewer as fallback
+      return getGoogleDocsViewerUrl(url);
+    }
+    
+    // Otherwise use the default method from config (which now uses Google Docs viewer)
+    return getPDFViewerUrl(url);
+  };
+
+  // Enhanced PDF error handling with fallback
+  const handlePdfErrorWithFallback = (tab, originalHandler) => {
+    console.error(`Failed to load PDF for tab: ${tab}`);
+    
+    // If it's a Google Drive URL and we haven't tried fallback yet
+    if (selectedFile?.[tab]?.includes("drive.google.com") && !useFallbackViewer) {
+      console.log("Switching to native Google Drive viewer as fallback");
+      setUseFallbackViewer(true);
+      setPdfLoadError(false);
+      // Force re-render with new viewer
+      setSelectedFile({...selectedFile});
+    } else {
+      // Call original error handler if it exists
+      if (originalHandler) {
+        originalHandler();
+      }
+      setPdfLoadError(true);
+    }
+  };
+
+  // Reset error states when changing files
+  useEffect(() => {
+    setPdfLoadError(false);
+    setUseFallbackViewer(false);
+  }, [selectedFile]);
+
   if (!selectedFile) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0D1321] text-white p-4">
@@ -1154,16 +1198,17 @@ export default function PaperViewer({
                   onRetry={retryQp}
                 />
               )}
-              {selectedFile?.qp && (
-                <iframe
-                  src={getPDFViewerUrl(selectedFile.qp)}
-                  className="w-full h-full border-0"
-                  title="Question Paper"
-                  style={{ backgroundColor: "white" }}
-                  onLoad={handleQpLoad}
-                  onError={handleQpError}
-                />
-              )}
+                              {selectedFile?.qp && (
+                  <iframe
+                    src={getViewerUrl(selectedFile.qp)}
+                    className="w-full h-full border-0"
+                    title="Question Paper"
+                    style={{ backgroundColor: "white" }}
+                    allowFullScreen
+                    onLoad={handleQpLoad}
+                    onError={() => handlePdfErrorWithFallback("qp", handleQpError)}
+                  />
+                )}
             </div>
 
             {/* Divider - Horizontal on mobile, Vertical on desktop */}
@@ -1194,32 +1239,35 @@ export default function PaperViewer({
               )}
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.ms)}
+                  src={getViewerUrl(selectedFile.ms)}
                   className="w-full h-full border-0"
                   title="Mark Scheme"
                   style={{ backgroundColor: "white" }}
+                  allowFullScreen
                   onLoad={handleMsLoad}
-                  onError={handleMsError}
+                  onError={() => handlePdfErrorWithFallback("ms", handleMsError)}
                 />
               )}
               {activeTab === "sp" && selectedFile?.sp && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.sp)}
+                  src={getViewerUrl(selectedFile.sp)}
                   className="w-full h-full border-0"
                   title="Solved Paper"
                   style={{ backgroundColor: "white" }}
+                  allowFullScreen
                   onLoad={handleMsLoad}
-                  onError={handleMsError}
+                  onError={() => handlePdfErrorWithFallback("sp", handleMsError)}
                 />
               )}
               {activeTab === "in" && selectedFile?.in && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.in)}
+                  src={getViewerUrl(selectedFile.in)}
                   className="w-full h-full border-0"
                   title="Booklet"
                   style={{ backgroundColor: "white" }}
+                  allowFullScreen
                   onLoad={handleMsLoad}
-                  onError={handleMsError}
+                  onError={() => handlePdfErrorWithFallback("in", handleMsError)}
                 />
               )}
             </div>
@@ -1243,42 +1291,46 @@ export default function PaperViewer({
             )}
             {activeTab === "qp" && selectedFile?.qp && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.qp)}
+                src={getViewerUrl(selectedFile.qp)}
                 className="w-full h-full border-0"
                 title="Question Paper"
                 style={{ backgroundColor: "white" }}
+                allowFullScreen
                 onLoad={handleQpLoad}
-                onError={handleQpError}
+                onError={() => handlePdfErrorWithFallback("qp", handleQpError)}
               />
             )}
             {activeTab === "ms" && selectedFile?.ms && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.ms)}
+                src={getViewerUrl(selectedFile.ms)}
                 className="w-full h-full border-0"
                 title="Mark Scheme"
                 style={{ backgroundColor: "white" }}
+                allowFullScreen
                 onLoad={handleMsLoad}
-                onError={handleMsError}
+                onError={() => handlePdfErrorWithFallback("ms", handleMsError)}
               />
             )}
             {activeTab === "sp" && selectedFile?.sp && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.sp)}
+                src={getViewerUrl(selectedFile.sp)}
                 className="w-full h-full border-0"
                 title="Solved Paper"
                 style={{ backgroundColor: "white" }}
+                allowFullScreen
                 onLoad={handleMsLoad}
-                onError={handleMsError}
+                onError={() => handlePdfErrorWithFallback("sp", handleMsError)}
               />
             )}
             {activeTab === "in" && selectedFile?.in && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.in)}
+                src={getViewerUrl(selectedFile.in)}
                 className="w-full h-full border-0"
                 title="Booklet"
                 style={{ backgroundColor: "white" }}
+                allowFullScreen
                 onLoad={handleMsLoad}
-                onError={handleMsError}
+                onError={() => handlePdfErrorWithFallback("in", handleMsError)}
               />
             )}
           </div>
