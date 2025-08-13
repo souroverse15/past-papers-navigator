@@ -26,6 +26,12 @@ import {
   Trophy,
   Clock,
   AlertTriangle,
+  DollarSign,
+  Languages,
+  Dna,
+  TrendingUp,
+  BookOpen,
+  Monitor,
 } from "lucide-react";
 import {
   getUserCompletedMocks,
@@ -1158,6 +1164,39 @@ export default function FileNavigator({
       );
     }
 
+    // IGCSE Subjects with icons
+    if (keyLower.includes("accounting")) {
+      return (
+        <DollarSign size={16} className="mr-1.5 flex-shrink-0 text-green-500" />
+      );
+    }
+    if (keyLower.includes("bangla")) {
+      return (
+        <Languages size={16} className="mr-1.5 flex-shrink-0 text-orange-400" />
+      );
+    }
+    if (keyLower.includes("biology")) {
+      return (
+        <Dna size={16} className="mr-1.5 flex-shrink-0 text-emerald-400" />
+      );
+    }
+    if (keyLower.includes("economics")) {
+      return (
+        <TrendingUp size={16} className="mr-1.5 flex-shrink-0 text-yellow-400" />
+      );
+    }
+    if (keyLower.includes("english language")) {
+      return (
+        <BookOpen size={16} className="mr-1.5 flex-shrink-0 text-blue-500" />
+      );
+    }
+    if (keyLower === "ict" || keyLower.includes("information")) {
+      return (
+        <Monitor size={16} className="mr-1.5 flex-shrink-0 text-purple-500" />
+      );
+    }
+
+    // Existing subjects
     if (keyLower.includes("chemistry")) {
       return (
         <FlaskConical
