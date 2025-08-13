@@ -337,18 +337,40 @@ export default function PaperViewer({
 
   // Handle iframe load events
   const handleQpLoad = () => {
+    console.log("Question Paper loaded successfully:", {
+      file: selectedFile?.name,
+      path: activePath,
+      isIGCSE: activePath?.includes('IGCSE'),
+      url: selectedFile?.qp
+    });
     setQpLoading(false);
     setQpError(null);
     setQpRetryCount(0);
   };
 
   const handleMsLoad = () => {
+    console.log("Mark Scheme/Document loaded successfully:", {
+      file: selectedFile?.name,
+      path: activePath,
+      isIGCSE: activePath?.includes('IGCSE'),
+      activeTab,
+      url: activeTab === 'ms' ? selectedFile?.ms : 
+           activeTab === 'sp' ? selectedFile?.sp : 
+           selectedFile?.in
+    });
     setMsLoading(false);
     setMsError(null);
     setMsRetryCount(0);
   };
 
   const handleQpError = () => {
+    console.error("Question Paper failed to load:", {
+      file: selectedFile?.name,
+      path: activePath,
+      isIGCSE: activePath?.includes('IGCSE'),
+      url: selectedFile?.qp,
+      retryCount: qpRetryCount
+    });
     setQpLoading(false);
     if (qpRetryCount < 2) {
       setQpError(`Loading Question Paper... Retry ${qpRetryCount + 1}/3`);
@@ -363,6 +385,16 @@ export default function PaperViewer({
   };
 
   const handleMsError = () => {
+    console.error("Mark Scheme/Document failed to load:", {
+      file: selectedFile?.name,
+      path: activePath,
+      isIGCSE: activePath?.includes('IGCSE'),
+      activeTab,
+      url: activeTab === 'ms' ? selectedFile?.ms : 
+           activeTab === 'sp' ? selectedFile?.sp : 
+           selectedFile?.in,
+      retryCount: msRetryCount
+    });
     setMsLoading(false);
     if (msRetryCount < 2) {
       setMsError(
@@ -1156,7 +1188,16 @@ export default function PaperViewer({
               )}
               {selectedFile?.qp && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.qp)}
+                  src={(() => {
+                    const url = getPDFViewerUrl(selectedFile.qp);
+                    console.log("Loading QP in side-by-side view:", {
+                      originalUrl: selectedFile.qp,
+                      viewerUrl: url,
+                      isIGCSE: activePath?.includes('IGCSE'),
+                      fileName: selectedFile?.name
+                    });
+                    return url;
+                  })()}
                   className="w-full h-full border-0"
                   title="Question Paper"
                   style={{ backgroundColor: "white" }}
@@ -1194,7 +1235,16 @@ export default function PaperViewer({
               )}
               {activeTab === "ms" && selectedFile?.ms && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.ms)}
+                  src={(() => {
+                    const url = getPDFViewerUrl(selectedFile.ms);
+                    console.log("Loading MS in side-by-side view:", {
+                      originalUrl: selectedFile.ms,
+                      viewerUrl: url,
+                      isIGCSE: activePath?.includes('IGCSE'),
+                      fileName: selectedFile?.name
+                    });
+                    return url;
+                  })()}
                   className="w-full h-full border-0"
                   title="Mark Scheme"
                   style={{ backgroundColor: "white" }}
@@ -1204,7 +1254,16 @@ export default function PaperViewer({
               )}
               {activeTab === "sp" && selectedFile?.sp && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.sp)}
+                  src={(() => {
+                    const url = getPDFViewerUrl(selectedFile.sp);
+                    console.log("Loading SP in side-by-side view:", {
+                      originalUrl: selectedFile.sp,
+                      viewerUrl: url,
+                      isIGCSE: activePath?.includes('IGCSE'),
+                      fileName: selectedFile?.name
+                    });
+                    return url;
+                  })()}
                   className="w-full h-full border-0"
                   title="Solved Paper"
                   style={{ backgroundColor: "white" }}
@@ -1214,7 +1273,16 @@ export default function PaperViewer({
               )}
               {activeTab === "in" && selectedFile?.in && (
                 <iframe
-                  src={getPDFViewerUrl(selectedFile.in)}
+                  src={(() => {
+                    const url = getPDFViewerUrl(selectedFile.in);
+                    console.log("Loading IN (Booklet) in side-by-side view:", {
+                      originalUrl: selectedFile.in,
+                      viewerUrl: url,
+                      isIGCSE: activePath?.includes('IGCSE'),
+                      fileName: selectedFile?.name
+                    });
+                    return url;
+                  })()}
                   className="w-full h-full border-0"
                   title="Booklet"
                   style={{ backgroundColor: "white" }}
@@ -1243,7 +1311,16 @@ export default function PaperViewer({
             )}
             {activeTab === "qp" && selectedFile?.qp && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.qp)}
+                src={(() => {
+                  const url = getPDFViewerUrl(selectedFile.qp);
+                  console.log("Loading QP in single view:", {
+                    originalUrl: selectedFile.qp,
+                    viewerUrl: url,
+                    isIGCSE: activePath?.includes('IGCSE'),
+                    fileName: selectedFile?.name
+                  });
+                  return url;
+                })()}
                 className="w-full h-full border-0"
                 title="Question Paper"
                 style={{ backgroundColor: "white" }}
@@ -1253,7 +1330,16 @@ export default function PaperViewer({
             )}
             {activeTab === "ms" && selectedFile?.ms && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.ms)}
+                src={(() => {
+                  const url = getPDFViewerUrl(selectedFile.ms);
+                  console.log("Loading MS in single view:", {
+                    originalUrl: selectedFile.ms,
+                    viewerUrl: url,
+                    isIGCSE: activePath?.includes('IGCSE'),
+                    fileName: selectedFile?.name
+                  });
+                  return url;
+                })()}
                 className="w-full h-full border-0"
                 title="Mark Scheme"
                 style={{ backgroundColor: "white" }}
@@ -1263,7 +1349,16 @@ export default function PaperViewer({
             )}
             {activeTab === "sp" && selectedFile?.sp && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.sp)}
+                src={(() => {
+                  const url = getPDFViewerUrl(selectedFile.sp);
+                  console.log("Loading SP in single view:", {
+                    originalUrl: selectedFile.sp,
+                    viewerUrl: url,
+                    isIGCSE: activePath?.includes('IGCSE'),
+                    fileName: selectedFile?.name
+                  });
+                  return url;
+                })()}
                 className="w-full h-full border-0"
                 title="Solved Paper"
                 style={{ backgroundColor: "white" }}
@@ -1273,7 +1368,16 @@ export default function PaperViewer({
             )}
             {activeTab === "in" && selectedFile?.in && (
               <iframe
-                src={getPDFViewerUrl(selectedFile.in)}
+                src={(() => {
+                  const url = getPDFViewerUrl(selectedFile.in);
+                  console.log("Loading IN (Booklet) in single view:", {
+                    originalUrl: selectedFile.in,
+                    viewerUrl: url,
+                    isIGCSE: activePath?.includes('IGCSE'),
+                    fileName: selectedFile?.name
+                  });
+                  return url;
+                })()}
                 className="w-full h-full border-0"
                 title="Booklet"
                 style={{ backgroundColor: "white" }}
