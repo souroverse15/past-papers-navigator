@@ -28,7 +28,7 @@ import {
   autoCompleteGoalWhenMockCompleted,
 } from "../firebase/userService";
 import { getPDFViewerUrl } from "../config/api";
-import { getPDFViewerUrlWithPDFJS, getNativeDriveViewerUrl } from "../config/api";
+import { getPDFViewerUrlWithPDFJS, getNativeDriveViewerUrl, getGoogleDocsViewerUrl } from "../config/api";
 
 // Helper function to extract subject from paper name or path
 const extractSubject = (paperName, activePath = "") => {
@@ -908,12 +908,13 @@ export default function PaperViewer({
   const getViewerUrl = (url) => {
     if (!url) return null;
     
-    // If there was an error with PDF.js and we're using fallback
+    // If there was an error and we're using fallback
     if (useFallbackViewer && url.includes("drive.google.com")) {
-      return getNativeDriveViewerUrl(url);
+      // Try Google Docs viewer as fallback
+      return getGoogleDocsViewerUrl(url);
     }
     
-    // Otherwise use the default method from config
+    // Otherwise use the default method from config (which now uses Google Docs viewer)
     return getPDFViewerUrl(url);
   };
 
